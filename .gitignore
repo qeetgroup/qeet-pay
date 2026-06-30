@@ -1,0 +1,15 @@
+.DS_Store
+*.log
+
+# Gradle
+.gradle
+build/
+
+# Local env files
+.env
+.env.local
+
+# IDE
+.idea
+*.iml
+.vscode

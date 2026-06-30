@@ -1,0 +1,36 @@
+# Local dev infra for qeet-pay (Phase 0). Tests don't use this — they spin their own
+# Postgres via Testcontainers. Ports are the reserved qeet-pay block (id=5001, people=5101).
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: qeet_pay
+      POSTGRES_PASSWORD: qeet_pay
+      POSTGRES_DB: qeet_pay
+    ports:
+      - "5201:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qeet_pay"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Transactional-outbox relay target (TAD §9.1). Off by default (QEETPAY_NATS_ENABLED=false).
+  nats:
+    image: nats:2.10-alpine
+    command: ["-js", "-m", "8222"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+
+  # Reserved for Phase 1 (rate limiting / fraud velocity features). Unused in Phase 0.
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:

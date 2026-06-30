@@ -1,0 +1,8 @@
+# Minimal runtime + test deps. Lower bounds chosen so prebuilt wheels exist for
+# both Python 3.12 (Docker image) and newer interpreters (3.13/3.14) — avoids a
+# from-source pydantic-core/Rust build.
+fastapi>=0.115.6
+uvicorn[standard]>=0.34.0
+pydantic>=2.11.7
+pytest>=8.3.4
+httpx>=0.28.1

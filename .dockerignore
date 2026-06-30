@@ -1,0 +1,11 @@
+# Backend image needs only the Gradle build + Java sources.
+.git
+.gradle
+build
+**/build
+
+# Local + docs
+.env
+.env.*
+*.md
+docker-compose.yml
