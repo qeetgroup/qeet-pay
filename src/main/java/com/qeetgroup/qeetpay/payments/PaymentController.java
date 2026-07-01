@@ -131,6 +131,7 @@ public class PaymentController {
             String currency,
             String method,
             String status,
+            String providerPaymentId,
             String ledgerEntryId) {
         static PaymentView of(Payment p) {
             return new PaymentView(
@@ -139,6 +140,7 @@ public class PaymentController {
                     p.getCurrency(),
                     p.getMethod().name(),
                     p.getStatus().name(),
+                    p.getProviderPaymentId(),
                     p.getLedgerEntryId() == null ? null : p.getLedgerEntryId().toString());
         }
     }

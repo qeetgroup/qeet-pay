@@ -111,6 +111,14 @@ public class Payment {
         return status;
     }
 
+    public String getProviderPaymentId() {
+        return providerPaymentId;
+    }
+
+    public void setProvider(String provider) {
+        this.provider = provider;
+    }
+
     public UUID getLedgerEntryId() {
         return ledgerEntryId;
     }
