@@ -42,7 +42,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private static final String[] PUBLIC_PATHS = {
-        "/healthz", "/readyz", "/actuator/health/**", "/actuator/info", "/actuator/prometheus"
+        "/healthz", "/readyz", "/actuator/health/**", "/actuator/info", "/actuator/prometheus",
+        "/v1/payments/razorpay/webhook" // Razorpay webhook — auth via HMAC-SHA256 signature
     };
 
     private final AppProperties props;

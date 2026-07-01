@@ -9,7 +9,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-/** A customer's subscription to a plan. */
+/** A customer's subscription to a plan. Lifecycle: TRIALING → ACTIVE → PAST_DUE → CANCELLED/PAUSED. */
 @Entity
 @Table(name = "subscriptions", schema = "billing")
 public class Subscription {
@@ -35,13 +35,27 @@ public class Subscription {
     @Column(name = "current_period_end", nullable = false)
     private Instant currentPeriodEnd;
 
+    @Column(name = "mandate_id")
+    private UUID mandateId;
+
+    @Column(name = "cancel_at_period_end", nullable = false)
+    private boolean cancelAtPeriodEnd = false;
+
+    @Column(name = "trial_ends_at")
+    private Instant trialEndsAt;
+
+    @Column(name = "paused_at")
+    private Instant pausedAt;
+
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
     protected Subscription() {}
 
-    public Subscription(
-            UUID merchantId, UUID planId, String customerRef, Instant periodStart, Instant periodEnd) {
+    public Subscription(UUID merchantId, UUID planId, String customerRef, Instant periodStart, Instant periodEnd) {
         this.merchantId = merchantId;
         this.planId = planId;
         this.customerRef = customerRef;
@@ -49,19 +63,72 @@ public class Subscription {
         this.currentPeriodEnd = periodEnd;
     }
 
-    public UUID getId() {
-        return id;
+    public void startTrial(Instant trialEnd) {
+        this.status = SubscriptionStatus.TRIALING;
+        this.trialEndsAt = trialEnd;
     }
 
-    public UUID getMerchantId() {
-        return merchantId;
+    public void activate() {
+        if (status != SubscriptionStatus.TRIALING && status != SubscriptionStatus.PAUSED) {
+            throw new IllegalStateException("cannot activate subscription in status " + status);
+        }
+        this.status = SubscriptionStatus.ACTIVE;
+        this.pausedAt = null;
     }
 
-    public UUID getPlanId() {
-        return planId;
+    public void upgradePlan(UUID newPlanId) {
+        if (status != SubscriptionStatus.ACTIVE && status != SubscriptionStatus.TRIALING) {
+            throw new IllegalStateException("cannot upgrade subscription in status " + status);
+        }
+        this.planId = newPlanId;
     }
 
-    public SubscriptionStatus getStatus() {
-        return status;
+    public void markPastDue() {
+        this.status = SubscriptionStatus.PAST_DUE;
+    }
+
+    public void pause() {
+        if (status != SubscriptionStatus.ACTIVE) {
+            throw new IllegalStateException("can only pause an ACTIVE subscription; status=" + status);
+        }
+        this.status = SubscriptionStatus.PAUSED;
+        this.pausedAt = Instant.now();
+    }
+
+    public void resume() {
+        if (status != SubscriptionStatus.PAUSED) {
+            throw new IllegalStateException("can only resume a PAUSED subscription; status=" + status);
+        }
+        this.status = SubscriptionStatus.ACTIVE;
+        this.pausedAt = null;
+    }
+
+    public void cancel(boolean atPeriodEnd) {
+        if (status == SubscriptionStatus.CANCELLED) return; // idempotent
+        if (atPeriodEnd) {
+            this.cancelAtPeriodEnd = true;
+        } else {
+            this.status = SubscriptionStatus.CANCELLED;
+            this.cancelledAt = Instant.now();
+        }
+    }
+
+    public UUID getId() { return id; }
+    public UUID getMerchantId() { return merchantId; }
+    public UUID getPlanId() { return planId; }
+    public String getCustomerRef() { return customerRef; }
+    public SubscriptionStatus getStatus() { return status; }
+    public Instant getCurrentPeriodStart() { return currentPeriodStart; }
+    public Instant getCurrentPeriodEnd() { return currentPeriodEnd; }
+    public UUID getMandateId() { return mandateId; }
+    public boolean isCancelAtPeriodEnd() { return cancelAtPeriodEnd; }
+    public Instant getTrialEndsAt() { return trialEndsAt; }
+    public Instant getPausedAt() { return pausedAt; }
+    public Instant getCancelledAt() { return cancelledAt; }
+
+    public void setMandateId(UUID mandateId) { this.mandateId = mandateId; }
+    public void renewPeriod(Instant newStart, Instant newEnd) {
+        this.currentPeriodStart = newStart;
+        this.currentPeriodEnd = newEnd;
     }
 }

@@ -46,6 +46,9 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql")
     runtimeOnly("org.postgresql:postgresql")
 
+    // Payment provider SDKs
+    implementation("com.razorpay:razorpay-java:1.4.5")
+
     // Tests — integration-test-first against a real Postgres (Testcontainers)
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")

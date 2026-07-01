@@ -1,0 +1,11 @@
+package com.qeetgroup.qeetpay.dunning;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
+@ResponseStatus(HttpStatus.NOT_FOUND)
+public class DunningNotFoundException extends RuntimeException {
+    public DunningNotFoundException(String message) {
+        super(message);
+    }
+}
