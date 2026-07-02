@@ -88,17 +88,19 @@ public class GstNoteService {
         UUID entryId;
 
         if (GstNote.CREDIT_NOTE.equals(note.getType())) {
-            // Return money to customer: debit revenue + tax_payable, credit settlement
-            entryId = ledger.postEntry(merchantId, "credit note " + noteId, "INR", List.of(
-                    new LedgerLineInput(revenue,    Direction.DEBIT,  note.getTaxableMinor()),
-                    new LedgerLineInput(taxPayable, Direction.DEBIT,  taxTotal),
-                    new LedgerLineInput(settlement, Direction.CREDIT, note.getTotalMinor())));
+            // Return money to customer: debit revenue (+ tax_payable if any), credit settlement
+            var lines = new java.util.ArrayList<LedgerLineInput>();
+            lines.add(new LedgerLineInput(revenue,    Direction.DEBIT,  note.getTaxableMinor()));
+            if (taxTotal > 0) lines.add(new LedgerLineInput(taxPayable, Direction.DEBIT, taxTotal));
+            lines.add(new LedgerLineInput(settlement, Direction.CREDIT, note.getTotalMinor()));
+            entryId = ledger.postEntry(merchantId, "credit note " + noteId, "INR", lines);
         } else {
-            // Additional charge: debit settlement, credit revenue + tax_payable
-            entryId = ledger.postEntry(merchantId, "debit note " + noteId, "INR", List.of(
-                    new LedgerLineInput(settlement, Direction.DEBIT,  note.getTotalMinor()),
-                    new LedgerLineInput(revenue,    Direction.CREDIT, note.getTaxableMinor()),
-                    new LedgerLineInput(taxPayable, Direction.CREDIT, taxTotal)));
+            // Additional charge: debit settlement, credit revenue (+ tax_payable if any)
+            var lines = new java.util.ArrayList<LedgerLineInput>();
+            lines.add(new LedgerLineInput(settlement, Direction.DEBIT,  note.getTotalMinor()));
+            lines.add(new LedgerLineInput(revenue,    Direction.CREDIT, note.getTaxableMinor()));
+            if (taxTotal > 0) lines.add(new LedgerLineInput(taxPayable, Direction.CREDIT, taxTotal));
+            entryId = ledger.postEntry(merchantId, "debit note " + noteId, "INR", lines);
         }
 
         note.apply(entryId);
