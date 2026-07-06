@@ -46,6 +46,7 @@ public class LedgerService {
             List.of(
                     new AccountSeed("settlement", "Settlement account", AccountType.SETTLEMENT),
                     new AccountSeed("bank", "Bank / nodal", AccountType.BANK),
+                    new AccountSeed("fees", "Provider fees", AccountType.FEE_EXPENSE),
                     new AccountSeed("revenue", "Revenue", AccountType.REVENUE),
                     new AccountSeed("liability", "Merchant payable", AccountType.LIABILITY),
                     new AccountSeed("tax_payable", "Tax payable (GST)", AccountType.TAX_PAYABLE),

@@ -14,6 +14,7 @@ import com.qeetgroup.qeetpay.platform.tenancy.MerchantScope;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -181,6 +182,19 @@ public class PaymentService {
     public Payment get(UUID merchantId, UUID paymentId) {
         merchantScope.apply(merchantId);
         return load(merchantId, paymentId);
+    }
+
+    /**
+     * Looks up a merchant's payment without throwing — used by cross-module readers (e.g.
+     * reconciliation) that treat a missing payment as a domain outcome, not an error.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Payment> find(UUID merchantId, UUID paymentId) {
+        merchantScope.apply(merchantId);
+        if (paymentId == null) {
+            return Optional.empty();
+        }
+        return payments.findById(paymentId).filter(p -> p.getMerchantId().equals(merchantId));
     }
 
     private Payment load(UUID merchantId, UUID paymentId) {

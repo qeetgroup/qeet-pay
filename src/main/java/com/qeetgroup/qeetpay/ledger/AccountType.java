@@ -8,6 +8,7 @@ package com.qeetgroup.qeetpay.ledger;
 public enum AccountType {
     SETTLEMENT(Direction.DEBIT),
     BANK(Direction.DEBIT),
+    FEE_EXPENSE(Direction.DEBIT),
     REVENUE(Direction.CREDIT),
     LIABILITY(Direction.CREDIT),
     TAX_PAYABLE(Direction.CREDIT),

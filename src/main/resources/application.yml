@@ -15,7 +15,7 @@ spring:
     enabled: true
     default-schema: platform
     create-schemas: true
-    schemas: platform,ledger,payments,payouts,billing,gst,mandates,dunning,webhooks,kyb,analytics
+    schemas: platform,ledger,payments,payouts,billing,gst,mandates,dunning,webhooks,kyb,analytics,reconciliation
 
 server:
   port: ${SERVER_PORT:4201}

@@ -72,10 +72,26 @@ public class PayoutService {
             throw new IllegalStateException("cannot approve payout in status " + payout.getStatus());
         }
 
+        disburse(merchantId, payout);
+        if (payout.getStatus() == PayoutStatus.FAILED) {
+            throw new IllegalStateException("payout failed: " + payout.getFailureReason());
+        }
+        return payout;
+    }
+
+    /**
+     * Disburses a single PENDING_APPROVAL payout via the provider and, on success, posts the
+     * balanced ledger entry (debit liability / credit bank) and marks it PAID; on provider failure
+     * it marks the payout FAILED. Unlike {@link #approve}, this does <em>not</em> throw on a business
+     * failure — bulk disbursal (same package) drives many payouts and records a per-payout outcome.
+     * Must run inside the caller's transaction, which has already applied the merchant scope.
+     */
+    void disburse(UUID merchantId, Payout payout) {
         PayoutProvider.ProviderResult result = provider.process(payout);
         if (!result.success()) {
             payout.markFailed(result.failureReason());
-            throw new IllegalStateException("payout failed: " + result.failureReason());
+            outbox.enqueue(merchantId, "payout.failed", json(payout, null));
+            return;
         }
 
         UUID liability = ledger.accountByCode(merchantId, "liability").getId();
@@ -91,7 +107,6 @@ public class PayoutService {
 
         payout.markPaid(result.providerPayoutId(), entryId);
         outbox.enqueue(merchantId, "payout.paid", json(payout, entryId));
-        return payout;
     }
 
     @Transactional

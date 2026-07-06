@@ -1,10 +1,11 @@
 # qeet-pay — CLAUDE.md
 
 **qeet-pay** — Qeet Pay, the India-first payments / billing / financial-infrastructure platform
-(PRD + TAD in [../qeet-files/qeet-pay/](../qeet-files/qeet-pay/)). **Status: Phase 0 foundation** —
-the modular-monolith skeleton + multi-tenant RLS backbone + the **double-entry ledger core** are in
-place; **no payment rails yet** (UPI/cards/payouts/subscriptions/GST/orchestration start in Phase 1,
-TAD §17).
+(PRD + TAD in [../qeet-files/qeet-pay/](../qeet-files/qeet-pay/)). **Status: Phase-1 build in progress** —
+the modular-monolith skeleton + multi-tenant RLS backbone + **double-entry ledger core** are in place,
+and the Phase-1 domain modules are landing one at a time (payments/payouts/billing/mandates/dunning/
+gst/kyb/fraud/webhooks/analytics + settlements & reconciliation are built; see the module list and
+TAD §17 for remaining scope — SDKs/CLI/sandbox, IRN/GSTR filing and AI/ML are Phase 2+).
 
 **Stack:** Java 21 + Spring Boot 3.4 modular monolith (per `../qeet-files/TECH-STACK-GUIDE.md` —
 chosen over Go because GST/INR math needs `BigDecimal` and the NPCI/GSTN/Razorpay SDKs are
@@ -48,7 +49,17 @@ sub-packages, declared with `package-info.java` `@ApplicationModule`:
   request-id, RFC-7807 errors).
 - **`ledger/`** — the crown jewel: append-only **double-entry** `accounts` / `journal_entries` /
   `journal_lines`; `LedgerService.postEntry` enforces Σdebits = Σcredits.
-- **`merchants/`** — the tenant aggregate; onboarding mints an API key + seeds the chart of accounts.
+- **`merchants/`** — the tenant aggregate; onboarding mints an API key + seeds the chart of accounts
+  (`settlement`, `bank`, `fees`, `revenue`, `liability`, `tax_payable`, `deferred_revenue`).
+- **`reconciliation/`** — settlements + reconciliation (TAD §6.2). `SettlementService.ingest` records a
+  provider settlement report, posts the money movement (debit `bank` + `fees` / credit `settlement`),
+  then `ReconciliationService` matches each line against captured payments and flags discrepancies
+  (amount/status/missing/duplicate, batch-total, and the **nodal** check that `settlement` never goes
+  negative). Reads payments via `PaymentService.find`; never blocks the posting.
+- **domain modules** (each its own package + schema + Flyway migration, same shape as above):
+  `payments/` (acceptance + provider routing/orchestration), `payouts/` (single + **bulk** batches
+  via API/CSV, maker-checker at create→approve; `BulkPayoutService`/`PayoutBatch`), `billing/`,
+  `mandates/`, `dunning/`, `gst/`, `kyb/`, `fraud/` (+ Python `fraud-svc/`), `webhooks/`, `analytics/`.
 
 Multi-tenant by `merchant_id` with **Row-Level Security** keyed off the per-request GUC
 `app.current_merchant_id` (set by `MerchantFilter` from the API key / JWT claim / dev `X-Merchant-Id`
