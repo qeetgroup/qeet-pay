@@ -50,6 +50,9 @@ public class Payout {
     @Column(name = "ledger_entry_id")
     private UUID ledgerEntryId;
 
+    @Column(name = "batch_id")
+    private UUID batchId;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
@@ -92,6 +95,11 @@ public class Payout {
         touch();
     }
 
+    /** Links this payout to a bulk batch (set before persisting; single payouts leave it null). */
+    public void assignToBatch(UUID batchId) {
+        this.batchId = batchId;
+    }
+
     private void touch() {
         this.updatedAt = Instant.now();
     }
@@ -116,11 +124,23 @@ public class Payout {
         return rail;
     }
 
+    public String getDestination() {
+        return destination;
+    }
+
     public PayoutStatus getStatus() {
         return status;
     }
 
+    public String getFailureReason() {
+        return failureReason;
+    }
+
     public UUID getLedgerEntryId() {
         return ledgerEntryId;
+    }
+
+    public UUID getBatchId() {
+        return batchId;
     }
 }
