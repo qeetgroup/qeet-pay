@@ -1,35 +1,22 @@
 package com.qeetgroup.qeetpay.billing;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.test.context.ActiveProfiles;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 /**
- * Pure pricing model tests exercised via {@link PricingCalculator}.
- * No DB writes needed — plans are built with a helper builder-style constructor.
+ * Pure pricing-model tests for {@link PricingCalculator}. No Spring context / DB needed — the
+ * calculator only needs an {@link ObjectMapper}, and {@link Plan}s are built in memory. Keeping this
+ * off Testcontainers makes it a fast, deterministic unit test.
  */
-@SpringBootTest
-@ActiveProfiles("test")
-@Testcontainers
 class TieredPricingTest {
 
-    @Container @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>(DockerImageName.parse("postgres:16-alpine"));
-
-    @Autowired PricingCalculator calculator;
-    @Autowired ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final PricingCalculator calculator = new PricingCalculator(objectMapper);
 
     @Test
     void flat_ignoresUsage() {
@@ -41,6 +28,11 @@ class TieredPricingTest {
     void perUnit_multiplyQuantity() {
         Plan plan = perUnitPlan(100L);
         assertThat(calculator.compute(plan, 50L)).isEqualTo(5000L);
+    }
+
+    @Test
+    void perUnit_zeroQuantityIsZero() {
+        assertThat(calculator.compute(perUnitPlan(100L), 0L)).isZero();
     }
 
     @Test
@@ -57,6 +49,28 @@ class TieredPricingTest {
         assertThat(calculator.compute(plan, 25L)).isEqualTo(4250L);
         // 150 units: 10×200 + 90×150 + 50×100 = 2000 + 13500 + 5000 = 20500
         assertThat(calculator.compute(plan, 150L)).isEqualTo(20500L);
+    }
+
+    @Test
+    void tiered_exactTierBoundaryStaysInFirstTier() throws Exception {
+        String tiers = objectMapper.writeValueAsString(List.of(
+                Map.of("upTo", 10, "unitPrice", 200),
+                Map.of("unitPrice", 100)
+        ));
+        Plan plan = tieredPlan(tiers);
+        // Exactly 10 units → all in tier 1 → 10 × 200 = 2000 (no spill into tier 2).
+        assertThat(calculator.compute(plan, 10L)).isEqualTo(2000L);
+        // 11 units → 10×200 + 1×100 = 2100.
+        assertThat(calculator.compute(plan, 11L)).isEqualTo(2100L);
+    }
+
+    @Test
+    void tiered_zeroQuantityIsZero() throws Exception {
+        String tiers = objectMapper.writeValueAsString(List.of(
+                Map.of("upTo", 10, "unitPrice", 200),
+                Map.of("unitPrice", 100)
+        ));
+        assertThat(calculator.compute(tieredPlan(tiers), 0L)).isZero();
     }
 
     @Test
@@ -78,12 +92,54 @@ class TieredPricingTest {
     }
 
     @Test
+    void volume_boundaryUsesTierWhoseCeilingItReaches() throws Exception {
+        String tiers = objectMapper.writeValueAsString(List.of(
+                Map.of("upTo", 100, "unitPrice", 300),
+                Map.of("unitPrice", 100)
+        ));
+        Plan plan = volumePlan(tiers);
+        // Exactly 100 (== upTo) stays in the first tier: 100 × 300 = 30000.
+        assertThat(calculator.compute(plan, 100L)).isEqualTo(30000L);
+        // 101 spills to the unbounded tier: 101 × 100 = 10100.
+        assertThat(calculator.compute(plan, 101L)).isEqualTo(10100L);
+    }
+
+    @Test
+    void volume_quantityBeyondAllFiniteTiersThrows() throws Exception {
+        // No unbounded (upTo: null) tier — a quantity above the last ceiling has no rate.
+        String tiers = objectMapper.writeValueAsString(List.of(
+                Map.of("upTo", 100, "unitPrice", 300),
+                Map.of("upTo", 1000, "unitPrice", 200)
+        ));
+        Plan plan = volumePlan(tiers);
+        assertThatThrownBy(() -> calculator.compute(plan, 5000L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("exceeds all volume tiers");
+    }
+
+    @Test
     void hybrid_baseFeePlusOverage() throws Exception {
         // Base fee 5000 paise, overage at 50 paise/unit (via single-tier tiers)
         String tiers = objectMapper.writeValueAsString(List.of(Map.of("unitPrice", 50)));
         Plan plan = hybridPlan(5000L, tiers);
         // 100 units: 5000 + 100×50 = 10000
         assertThat(calculator.compute(plan, 100L)).isEqualTo(10000L);
+    }
+
+    @Test
+    void hybrid_emptyTiersIsJustBaseFee() throws Exception {
+        String tiers = objectMapper.writeValueAsString(List.of());
+        Plan plan = hybridPlan(5000L, tiers);
+        // No overage tiers → perUnit contributes 0 → just the base fee.
+        assertThat(calculator.compute(plan, 100L)).isEqualTo(5000L);
+    }
+
+    @Test
+    void invalidTiersJsonThrows() {
+        Plan plan = tieredPlan("not-json");
+        assertThatThrownBy(() -> calculator.compute(plan, 10L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("invalid tiers JSON");
     }
 
     // ── plan stubs ────────────────────────────────────────────────────────────
