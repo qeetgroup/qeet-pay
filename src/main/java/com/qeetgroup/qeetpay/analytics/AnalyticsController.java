@@ -16,9 +16,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AnalyticsController {
 
     private final AnalyticsQueryService query;
+    private final CashFlowForecastService forecast;
 
-    public AnalyticsController(AnalyticsQueryService query) {
+    public AnalyticsController(AnalyticsQueryService query, CashFlowForecastService forecast) {
         this.query = query;
+        this.forecast = forecast;
     }
 
     @GetMapping("/tpv")
@@ -50,6 +52,14 @@ public class AnalyticsController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
             @RequestParam(required = false) String method) {
         return query.successRate(MerchantContext.require(), from, to, method);
+    }
+
+    /** 30-day (configurable) settlement-balance projection + working-capital recommendation. */
+    @GetMapping("/cash-flow-forecast")
+    public CashFlowForecastService.CashFlowForecast cashFlowForecast(
+            @RequestParam(defaultValue = "30") int horizonDays,
+            @RequestParam(defaultValue = "30") int windowDays) {
+        return forecast.forecast(MerchantContext.require(), horizonDays, windowDays);
     }
 
     public record ArrView(long mrrMinor, long arrMinor) {}

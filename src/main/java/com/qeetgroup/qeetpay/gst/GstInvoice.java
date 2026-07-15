@@ -69,6 +69,33 @@ public class GstInvoice {
     @Column(name = "paid_at")
     private Instant paidAt;
 
+    // ── E-invoicing / IRN (TAD §7.3) ─────────────────────────────────────────
+
+    @Column(name = "irn")
+    private String irn;
+
+    @Column(name = "irp_ack_no")
+    private String irpAckNo;
+
+    @Column(name = "irp_ack_date")
+    private Instant irpAckDate;
+
+    @Column(name = "signed_qr_code")
+    private String signedQrCode;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "irn_status", nullable = false)
+    private IrnStatus irnStatus = IrnStatus.NONE;
+
+    @Column(name = "irn_generated_at")
+    private Instant irnGeneratedAt;
+
+    @Column(name = "irn_cancelled_at")
+    private Instant irnCancelledAt;
+
+    @Column(name = "irn_cancel_reason")
+    private String irnCancelReason;
+
     protected GstInvoice() {}
 
     public GstInvoice(
@@ -102,6 +129,32 @@ public class GstInvoice {
         this.status = GstInvoiceStatus.PAID;
         this.ledgerEntryId = ledgerEntryId;
         this.paidAt = Instant.now();
+    }
+
+    /** Records the IRP registration result on this invoice (TAD §7.3). */
+    public void applyIrn(IrpResult result) {
+        if (irnStatus == IrnStatus.GENERATED) {
+            throw new IllegalStateException("invoice already has an IRN");
+        }
+        if (status == GstInvoiceStatus.CANCELLED) {
+            throw new IllegalStateException("cannot register a cancelled invoice");
+        }
+        this.irn = result.irn();
+        this.irpAckNo = result.ackNo();
+        this.irpAckDate = result.ackDate();
+        this.signedQrCode = result.signedQrCode();
+        this.irnStatus = IrnStatus.GENERATED;
+        this.irnGeneratedAt = Instant.now();
+    }
+
+    /** Marks the IRN cancelled at the IRP (within the 24h window), keeping the number for audit. */
+    public void cancelIrn(String reason) {
+        if (irnStatus != IrnStatus.GENERATED) {
+            throw new IllegalStateException("no active IRN to cancel");
+        }
+        this.irnStatus = IrnStatus.CANCELLED;
+        this.irnCancelReason = reason;
+        this.irnCancelledAt = Instant.now();
     }
 
     public UUID getId() {
@@ -154,5 +207,53 @@ public class GstInvoice {
 
     public UUID getLedgerEntryId() {
         return ledgerEntryId;
+    }
+
+    public String getSupplierGstin() {
+        return supplierGstin;
+    }
+
+    public String getBuyerGstin() {
+        return buyerGstin;
+    }
+
+    public String getPlaceOfSupply() {
+        return placeOfSupply;
+    }
+
+    public Instant getIssuedAt() {
+        return issuedAt;
+    }
+
+    public String getIrn() {
+        return irn;
+    }
+
+    public String getIrpAckNo() {
+        return irpAckNo;
+    }
+
+    public Instant getIrpAckDate() {
+        return irpAckDate;
+    }
+
+    public String getSignedQrCode() {
+        return signedQrCode;
+    }
+
+    public IrnStatus getIrnStatus() {
+        return irnStatus;
+    }
+
+    public Instant getIrnGeneratedAt() {
+        return irnGeneratedAt;
+    }
+
+    public Instant getIrnCancelledAt() {
+        return irnCancelledAt;
+    }
+
+    public String getIrnCancelReason() {
+        return irnCancelReason;
     }
 }

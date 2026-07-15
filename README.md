@@ -2,7 +2,7 @@
 
 **Qeet Pay** is the unified payments, billing, and financial infrastructure platform for the Qeet Group and for external multi-tenant SaaS companies, marketplaces, and enterprises. One API, one dashboard, one integration — for payment acceptance, payouts, subscription billing, GST-compliant invoicing, payment orchestration, fraud detection, embedded finance, and financial analytics.
 
-> Status: **Phase-1 build in progress.** The modular-monolith skeleton, multi-tenant RLS backbone, and double-entry ledger core are in place; payments, payouts, billing, mandates, dunning, GST, KYB, fraud, webhooks, and analytics modules plus settlements/reconciliation are built and landing incrementally. SDKs/CLI/sandbox, IRN/GSTR filing, and AI/ML remain Phase 2+ (see `CLAUDE.md` and the TAD §17 for exact scope).
+> Status: **Phase-1 complete; Phase-2 backend landing.** The modular-monolith skeleton, multi-tenant RLS backbone, and double-entry ledger core are in place; payments, payouts, billing, mandates, dunning, GST, KYB, fraud, webhooks, and analytics modules plus settlements/reconciliation are built. Phase-2 backend is now landing incrementally: revenue recognition (IndAS 115), marketplace split settlements (GST/TCS/TDS), GST return filing (GSTR-1/3B), IRN e-invoicing, AI-dunning UPI-failure classification, smart provider orchestration, embedded lending (AA-underwritten working-capital advances), virtual accounts (auto-reconciled B2B collection), cash-flow forecasting, digital escrow (conditional release), cross-border collection (export invoices + FX + FIRA), and WhatsApp-native messaging. SDKs (in `../qeet-sdks/`), CLI, sandbox, and the operator console remain (see `CLAUDE.md` and the TAD §17 for exact scope).
 
 ---
 

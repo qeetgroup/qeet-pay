@@ -46,7 +46,33 @@ public class DunningController {
                 .stream().map(AttemptView::of).toList();
     }
 
+    /** Explainable UPI-failure classification (PRD Module 04.1) — no state change. */
+    @PostMapping("/classify")
+    public ClassificationView classify(@Valid @RequestBody ClassifyRequest req) {
+        return ClassificationView.of(dunning.classify(req.failureCode()));
+    }
+
+    /** AI-dunning trigger: classify the failure and schedule an adaptive retry accordingly. */
+    @PostMapping("/subscriptions/{subscriptionId}/trigger-smart")
+    public AttemptView triggerSmart(
+            @PathVariable UUID subscriptionId, @Valid @RequestBody ClassifyRequest req) {
+        return AttemptView.of(
+                dunning.triggerSmart(MerchantContext.require(), subscriptionId, req.failureCode()));
+    }
+
     // ── Request / view records ────────────────────────────────────────────────
+
+    public record ClassifyRequest(@NotBlank String failureCode) {}
+
+    public record ClassificationView(
+            String category, boolean retryable, int recommendedDelayHours,
+            String recommendedChannels, String rationale) {
+        static ClassificationView of(RetryRecommendation r) {
+            return new ClassificationView(
+                    r.category().name(), r.retryable(), r.recommendedDelayHours(),
+                    r.recommendedChannels(), r.rationale());
+        }
+    }
 
     public record CreateRuleRequest(
             @NotBlank String name,
@@ -64,11 +90,15 @@ public class DunningController {
     }
 
     public record AttemptView(String id, String subscriptionId, int attemptNumber,
-            Instant scheduledAt, Instant attemptedAt, String result, String failureReason) {
+            Instant scheduledAt, Instant attemptedAt, String result, String failureReason,
+            String failureCategory, Integer recommendedDelayHours, String recommendedChannels,
+            String classificationRationale) {
         static AttemptView of(DunningAttempt a) {
             return new AttemptView(a.getId().toString(), a.getSubscriptionId().toString(),
                     a.getAttemptNumber(), a.getScheduledAt(), a.getAttemptedAt(),
-                    a.getResult(), a.getFailureReason());
+                    a.getResult(), a.getFailureReason(),
+                    a.getFailureCategory(), a.getRecommendedDelayHours(), a.getRecommendedChannels(),
+                    a.getClassificationRationale());
         }
     }
 }

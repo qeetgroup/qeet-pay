@@ -8,6 +8,8 @@ import com.qeetgroup.qeetpay.billing.SubscriptionStatus;
 import com.qeetgroup.qeetpay.platform.outbox.OutboxService;
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantScope;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,6 +31,7 @@ public class DunningService {
     private final DunningRuleRepository rules;
     private final DunningAttemptRepository attempts;
     private final DunningRuleEngine engine;
+    private final FailureClassifier classifier;
     private final BillingService billing;
     private final MerchantScope merchantScope;
     private final OutboxService outbox;
@@ -38,6 +41,7 @@ public class DunningService {
             DunningRuleRepository rules,
             DunningAttemptRepository attempts,
             DunningRuleEngine engine,
+            FailureClassifier classifier,
             BillingService billing,
             MerchantScope merchantScope,
             OutboxService outbox,
@@ -45,6 +49,7 @@ public class DunningService {
         this.rules = rules;
         this.attempts = attempts;
         this.engine = engine;
+        this.classifier = classifier;
         this.billing = billing;
         this.merchantScope = merchantScope;
         this.outbox = outbox;
@@ -100,6 +105,53 @@ public class DunningService {
 
         outbox.enqueue(merchantId, "dunning.triggered", json("subscriptionId", subscriptionId, "rule", rule.getId()));
         return Optional.of(attempt);
+    }
+
+    /**
+     * Explainable classification of a failure code (PRD Module 04.1) — no state change. Returns the
+     * category, whether to auto-retry, the adaptive delay + channels, and a plain-English rationale.
+     */
+    public RetryRecommendation classify(String failureCode) {
+        return classifier.classify(failureCode);
+    }
+
+    /**
+     * AI-dunning entrypoint (PRD Module 04.1): like {@link #trigger} but the failure code is
+     * classified and the classification drives the next retry's timing and notification channels
+     * (instead of a flat rule interval). Non-retryable categories (risk/mandate) stop auto-recovery
+     * and escalate. The classification is recorded on the attempt for the merchant to inspect.
+     */
+    @Transactional
+    public DunningAttempt triggerSmart(UUID merchantId, UUID subscriptionId, String failureCode) {
+        merchantScope.apply(merchantId);
+        Subscription sub = billing.getSubscription(merchantId, subscriptionId);
+        if (sub.getStatus() != SubscriptionStatus.ACTIVE) {
+            throw new IllegalStateException("subscription is not ACTIVE; status=" + sub.getStatus());
+        }
+        billing.markPastDue(merchantId, subscriptionId);
+
+        RetryRecommendation rec = classifier.classify(failureCode);
+        UUID ruleId =
+                engine.match(rules.findByMerchantIdAndActiveTrue(merchantId), failureCode)
+                        .map(DunningRule::getId)
+                        .orElse(null);
+
+        DunningAttempt attempt = new DunningAttempt(merchantId, subscriptionId, ruleId, 1, Instant.now());
+        attempt.recordResult(DunningAttempt.FAILED, failureCode);
+        attempt.applyClassification(rec);
+        attempts.save(attempt);
+
+        if (rec.retryable()) {
+            Instant nextRetry = Instant.now().plus(rec.recommendedDelayHours(), ChronoUnit.HOURS);
+            DunningAttempt scheduled = new DunningAttempt(merchantId, subscriptionId, ruleId, 2, nextRetry);
+            scheduled.applyClassification(rec);
+            attempts.save(scheduled);
+        } else {
+            cancelDunned(merchantId, subscriptionId); // risk / mandate → stop auto-retry, escalate
+        }
+
+        outbox.enqueue(merchantId, "dunning.classified", classifiedJson(subscriptionId, rec));
+        return attempt;
     }
 
     /**
@@ -160,6 +212,20 @@ public class DunningService {
     private String json(String k1, UUID v1, String k2, UUID v2) {
         try {
             return objectMapper.writeValueAsString(Map.of(k1, v1.toString(), k2, v2.toString()));
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("dunning event serialisation failed", e);
+        }
+    }
+
+    private String classifiedJson(UUID subscriptionId, RetryRecommendation rec) {
+        Map<String, Object> b = new LinkedHashMap<>();
+        b.put("subscriptionId", subscriptionId.toString());
+        b.put("category", rec.category().name());
+        b.put("retryable", rec.retryable());
+        b.put("recommendedDelayHours", rec.recommendedDelayHours());
+        b.put("recommendedChannels", rec.recommendedChannels());
+        try {
+            return objectMapper.writeValueAsString(b);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("dunning event serialisation failed", e);
         }

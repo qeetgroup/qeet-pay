@@ -69,6 +69,18 @@ public class LedgerService {
     }
 
     /**
+     * Idempotently returns the merchant's account with {@code code}, opening it if absent. Used by
+     * domain modules that need an account outside the default chart (e.g. {@code loan_payable}).
+     */
+    @Transactional
+    public Account ensureAccount(UUID merchantId, String code, String name, AccountType type, String currency) {
+        merchantScope.apply(merchantId);
+        return accounts
+                .findByMerchantIdAndCode(merchantId, code)
+                .orElseGet(() -> accounts.save(new Account(merchantId, code, name, type, currency)));
+    }
+
+    /**
      * Posts a balanced journal entry. Throws {@link LedgerImbalanceException} (422) if debits do
      * not equal credits, or {@link IllegalArgumentException} (400) for malformed input.
      */

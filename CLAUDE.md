@@ -1,11 +1,17 @@
 # qeet-pay — CLAUDE.md
 
 **qeet-pay** — Qeet Pay, the India-first payments / billing / financial-infrastructure platform
-(PRD + TAD in [../qeet-files/qeet-pay/](../qeet-files/qeet-pay/)). **Status: Phase-1 build in progress** —
-the modular-monolith skeleton + multi-tenant RLS backbone + **double-entry ledger core** are in place,
-and the Phase-1 domain modules are landing one at a time (payments/payouts/billing/mandates/dunning/
-gst/kyb/fraud/webhooks/analytics + settlements & reconciliation are built; see the module list and
-TAD §17 for remaining scope — SDKs/CLI/sandbox, IRN/GSTR filing and AI/ML are Phase 2+).
+(PRD + TAD in [../qeet-files/qeet-pay/](../qeet-files/qeet-pay/)). **Status: Phase-1 complete; Phase-2
+backend landing** — the modular-monolith skeleton + multi-tenant RLS backbone + **double-entry ledger
+core** are in place; all Phase-1 domain modules are built (payments/payouts/billing/mandates/dunning/
+gst/kyb/fraud/webhooks/analytics + settlements & reconciliation), and Phase-2 backend modules are now
+landing one at a time — `revrec/` (IndAS 115), `marketplace/` (split settlements + TCS/TDS), `filing/`
+(GSTR-1/3B), `lending/` (AA working-capital advances), `virtualaccounts/` (auto-reconciled B2B
+collection), `escrow/` (conditional hold/release/refund), `crossborder/` (export invoices + FX + FIRA),
+`messaging/` (WhatsApp-native dispatch), plus IRN e-invoicing (in `gst/`), AI-dunning failure
+classification (in `dunning/`), smart provider orchestration/scorecards (in `payments/`), and cash-flow
+forecasting (in `analytics/`). Remaining: SDKs (in `../qeet-sdks/`), CLI, sandbox, and the operator
+console (port 3201) — see the module list and TAD §17.
 
 **Stack:** Java 21 + Spring Boot 3.4 modular monolith (per `../qeet-files/TECH-STACK-GUIDE.md` —
 chosen over Go because GST/INR math needs `BigDecimal` and the NPCI/GSTN/Razorpay SDKs are
@@ -57,9 +63,30 @@ sub-packages, declared with `package-info.java` `@ApplicationModule`:
   (amount/status/missing/duplicate, batch-total, and the **nodal** check that `settlement` never goes
   negative). Reads payments via `PaymentService.find`; never blocks the posting.
 - **domain modules** (each its own package + schema + Flyway migration, same shape as above):
-  `payments/` (acceptance + provider routing/orchestration), `payouts/` (single + **bulk** batches
-  via API/CSV, maker-checker at create→approve; `BulkPayoutService`/`PayoutBatch`), `billing/`,
-  `mandates/`, `dunning/`, `gst/`, `kyb/`, `fraud/` (+ Python `fraud-svc/`), `webhooks/`, `analytics/`.
+  `payments/` (acceptance + provider routing/orchestration; **Phase-2 smart routing** = per-provider
+  `ProviderScorecard`/`ProviderScorer`/`ProviderRoutingService`, health/cost/auth-rate, V23), `payouts/`
+  (single + **bulk** batches via API/CSV, maker-checker at create→approve; `BulkPayoutService`/
+  `PayoutBatch`), `billing/`, `mandates/`, `dunning/` (+ **Phase-2 AI dunning** = `FailureClassifier`/
+  `RetryRecommendation` UPI-failure classification → adaptive `triggerSmart`, V22), `gst/` (+ **Phase-2
+  IRN e-invoicing** = `IrpAdapter`/`EInvoiceService`, IRN + signed QR, V20), `kyb/`, `fraud/` (+ Python
+  `fraud-svc/`), `webhooks/`, `analytics/`.
+- **Phase-2 modules** (new bounded contexts, same shape): `revrec/` — IndAS 115 revenue recognition
+  (deferral debit `settlement`/credit `deferred_revenue`, then ratable debit `deferred_revenue`/credit
+  `revenue`; `RevenueScheduler`, V18); `marketplace/` — e-commerce-operator split settlements with
+  commission + GST + statutory TCS(§52)/TDS(§194-O) attribution, cancel-via-offsetting-entry
+  (`SplitCalculator`, V19); `filing/` — GSTR-1/GSTR-3B return prep from `gst/` invoices + GSTN filing
+  adapter → ARN (`GstnFilingAdapter`, V21); `lending/` — AA-underwritten working-capital advances
+  repaid as a % of daily settlement (disburse debit `settlement`+`fees`/credit on-demand
+  `loan_payable`; sweep the reverse; `UnderwritingAdapter`, V24); `virtualaccounts/` — per-customer
+  VA mint + inbound-credit auto-reconcile (money-in posting, idempotent on bank UTR, V25); `escrow/` —
+  conditional hold (debit `settlement`/credit on-demand `escrow_payable`) → partial release-to-seller
+  (`liability`) / refund-to-buyer, append-only events (V26); `crossborder/` — foreign-currency export
+  invoices (LUT/FEMA purpose code) settled by an inward remittance FX-converted to INR + FIRA capture,
+  posted money-in (`FxRateAdapter`, V27); `messaging/` — WhatsApp/SMS/email templates + rendered
+  dispatch emitted to the outbox for qeet-notify (`TemplateRenderer`, V28). Analytics Phase-2:
+  `analytics/CashFlowForecastService` — settlement-balance projection from ledger + trailing net TPV
+  (no migration; `allowedDependencies={platform,ledger}` respected). External IRP/GSTN/IRN/AA/FX
+  backends use the sandbox-adapter pattern (`@ConditionalOnMissingBean`), like `kyb/`.
 
 Multi-tenant by `merchant_id` with **Row-Level Security** keyed off the per-request GUC
 `app.current_merchant_id` (set by `MerchantFilter` from the API key / JWT claim / dev `X-Merchant-Id`

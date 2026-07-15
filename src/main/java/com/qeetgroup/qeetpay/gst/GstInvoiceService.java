@@ -149,6 +149,17 @@ public class GstInvoiceService {
         return new InvoiceWithLines(invoice, lines.findByInvoiceId(invoiceId));
     }
 
+    /**
+     * Invoices issued in the half-open window {@code [from, to)} — the tax-period slice the
+     * {@code filing} module aggregates into a GSTR return. Read-only; never mutates.
+     */
+    @Transactional(readOnly = true)
+    public List<GstInvoice> findIssuedInPeriod(UUID merchantId, Instant from, Instant to) {
+        merchantScope.apply(merchantId);
+        return invoices.findByMerchantIdAndIssuedAtGreaterThanEqualAndIssuedAtLessThanOrderByIssuedAt(
+                merchantId, from, to);
+    }
+
     private GstInvoice load(UUID merchantId, UUID invoiceId) {
         return invoices
                 .findById(invoiceId)
