@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.filing;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
@@ -18,6 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
  * GST return-filing API (TAD §7.4): prepare a GSTR-1/GSTR-3B return for a tax period from the
  * merchant's invoices, then file it to GSTN and record the ARN.
  */
+@Tag(
+        name = "GST Returns",
+        description = "Prepare GSTR-1/GSTR-3B returns for a tax period from merchant invoices and file them to GSTN (ARN).")
 @RestController
 @RequestMapping("/v1/gst/returns")
 public class FilingController {

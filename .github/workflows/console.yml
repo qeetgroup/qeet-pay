@@ -1,0 +1,73 @@
+# Console CI — operator dashboard at apps/console/ (TanStack Start + Vite + React 19).
+# Path-filtered so backend/cli/docs changes don't trigger a Node build.
+name: console
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "apps/console/**"
+      - ".github/workflows/console.yml"
+  pull_request:
+    paths:
+      - "apps/console/**"
+      - ".github/workflows/console.yml"
+
+concurrency:
+  group: console-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: apps/console
+
+jobs:
+  build:
+    name: Node 22 · pnpm typecheck + lint + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Corepack is the officially-supported way to provision pnpm. We activate a
+      # pinned pnpm 9 (matches pnpm-lock.yaml lockfileVersion 9.0) AFTER setup-node
+      # so the shim lands on the Node 22 that setup-node installed.
+      - name: Enable Corepack and activate pnpm 9
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.0 --activate
+
+      # Manual store caching (setup-node's built-in pnpm cache needs pnpm present
+      # before it runs, which conflicts with the ordering above).
+      - name: Resolve pnpm store directory
+        run: echo "PNPM_STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PNPM_STORE_PATH }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('apps/console/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Pure type gate (tsc --noEmit). routeTree.gen.ts is committed to VCS.
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm build

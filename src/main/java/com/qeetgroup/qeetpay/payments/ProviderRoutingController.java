@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.payments;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -17,6 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
  * Smart-orchestration API (PRD Module 07.3): inspect the per-provider routing scorecards (auth rate,
  * health, cost) and configure each provider's cost basis used when routing.
  */
+@Tag(
+        name = "Orchestration",
+        description = "Smart provider routing — inspect per-provider scorecards (auth rate, health, cost) and set the cost basis.")
 @RestController
 @RequestMapping("/v1/payments/providers")
 public class ProviderRoutingController {

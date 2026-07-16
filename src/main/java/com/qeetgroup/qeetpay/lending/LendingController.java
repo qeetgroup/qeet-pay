@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.lending;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -21,6 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
  * Embedded-lending API (PRD Module 10): request an advance offer, accept it (disburses funds), read
  * loans/offers, and apply a settlement sweep toward repayment.
  */
+@Tag(
+        name = "Lending",
+        description = "Working-capital advances — request/accept offers (disburses funds) and apply settlement sweeps to repayment.")
 @RestController
 @RequestMapping("/v1/lending")
 public class LendingController {

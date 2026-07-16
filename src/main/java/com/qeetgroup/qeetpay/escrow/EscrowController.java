@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.escrow;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -21,6 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
  * Digital-escrow API (PRD Module 10): hold a buyer's funds, release (part) to the seller on
  * confirmation, refund (part) to the buyer, and read agreements with their event history.
  */
+@Tag(
+        name = "Escrow",
+        description = "Conditional escrow — hold buyer funds, release (partly) to the seller or refund to the buyer, with event history.")
 @RestController
 @RequestMapping("/v1/escrow")
 public class EscrowController {

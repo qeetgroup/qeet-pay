@@ -225,6 +225,29 @@ public class BillingService {
         return loadSubscription(merchantId, subscriptionId);
     }
 
+    // ── Lists ───────────────────────────────────────────────────────────────
+
+    /** The merchant's plans, newest-created first. */
+    @Transactional(readOnly = true)
+    public List<Plan> listPlans(UUID merchantId) {
+        merchantScope.apply(merchantId);
+        return plans.findByMerchantIdOrderByCreatedAtDesc(merchantId);
+    }
+
+    /** The merchant's subscriptions, newest-created first. */
+    @Transactional(readOnly = true)
+    public List<Subscription> listSubscriptions(UUID merchantId) {
+        merchantScope.apply(merchantId);
+        return subscriptions.findByMerchantIdOrderByCreatedAtDesc(merchantId);
+    }
+
+    /** The merchant's invoices, newest-issued first. */
+    @Transactional(readOnly = true)
+    public List<Invoice> listInvoices(UUID merchantId) {
+        merchantScope.apply(merchantId);
+        return invoices.findByMerchantIdOrderByIssuedAtDesc(merchantId);
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────────
 
     private Plan loadPlan(UUID merchantId, UUID planId) {

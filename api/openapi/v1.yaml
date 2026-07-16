@@ -1,0 +1,5841 @@
+openapi: 3.1.0
+info:
+  title: Qeet Pay API
+  description: >-
+    Qeet Pay — India-first payments, billing and GST infrastructure (UPI / Cards / NACH). Programmatic `/v1` calls
+    authenticate with a `qp_live_` / `qp_test_` API key via the `X-Api-Key` header; money is always in integer minor
+    units (paise).
+  contact:
+    name: Qeet Group
+    url: https://qeet.in
+  license:
+    name: Proprietary
+    url: https://qeet.in
+  version: v1
+servers:
+  - url: https://api.pay.qeet.in
+    description: Production
+  - url: https://api.pay.staging.qeet.in
+    description: Staging
+  - url: http://localhost:4201
+    description: Local (docker compose)
+security:
+  - ApiKeyAuth: []
+tags:
+  - name: Payments
+    description: Accept payments (create, capture) and inbound provider webhooks.
+  - name: Payment Links
+    description: Shareable payment links — fixed or payer-entered amount.
+  - name: Checkout
+    description: Public hosted-checkout — pay a link by its code, no API key.
+  - name: Orchestration
+    description: Smart provider routing — scorecards and cost basis.
+  - name: Payouts
+    description: Single and bulk payouts under maker-checker approval.
+  - name: Ledger
+    description: Double-entry ledger accounts and balanced journal entries.
+  - name: Reconciliation
+    description: Provider settlements and auto-reconciliation.
+  - name: Revenue Recognition
+    description: IndAS 115 deferred-revenue schedules.
+  - name: Billing
+    description: Plans, subscriptions, invoices and usage metering.
+  - name: Mandates
+    description: Recurring mandates and idempotent mandate debits.
+  - name: Dunning
+    description: Failed-payment retry rules and attempt history.
+  - name: GST Invoicing
+    description: GST invoices and credit/debit notes.
+  - name: E-Invoicing (IRN)
+    description: IRP registration for IRN + signed QR.
+  - name: GST Returns
+    description: GSTR-1/GSTR-3B preparation and GSTN filing.
+  - name: Input Tax Credit
+    description: Purchase invoices reconciled against GSTR-2B.
+  - name: TDS / TCS
+    description: Tax-at-source deductions, certificates and summaries.
+  - name: Lending
+    description: Working-capital advances repaid from settlements.
+  - name: BNPL
+    description: Buy-Now-Pay-Later installment agreements.
+  - name: Cards
+    description: Virtual expense/wallet cards.
+  - name: Insurance
+    description: Embedded protection policies and claims.
+  - name: Escrow
+    description: Conditional hold, release-to-seller and refund.
+  - name: Virtual Accounts
+    description: Per-customer virtual accounts with auto-reconciled credits.
+  - name: Cross-Border
+    description: Export invoices and inward FX remittances (FIRA).
+  - name: Marketplace
+    description: Seller registration and split settlements (TCS/TDS).
+  - name: Messaging
+    description: WhatsApp/SMS/email templates and dispatch.
+  - name: ESG / Carbon
+    description: Per-transaction carbon footprint and offsets.
+  - name: Analytics
+    description: TPV, MRR/ARR, success rate and cash-flow forecasting.
+  - name: KYB
+    description: Merchant Know-Your-Business verification.
+  - name: Webhooks
+    description: Webhook endpoint registration and delivery history.
+  - name: Merchants
+    description: Merchant onboarding and current-merchant profile.
+  - name: Platform
+    description: Request-identity introspection and health probes.
+paths:
+  /v1/payments/providers/{provider}/cost:
+    put:
+      tags:
+        - Orchestration
+      operationId: setCost
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CostRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ScorecardView'
+  /v1/messaging/templates:
+    get:
+      tags:
+        - Messaging
+      operationId: listTemplates
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TemplateView'
+    put:
+      tags:
+        - Messaging
+      operationId: upsertTemplate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TemplateView'
+  /v1/webhooks/endpoints:
+    get:
+      tags:
+        - Webhooks
+      operationId: list
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EndpointView'
+    post:
+      tags:
+        - Webhooks
+      operationId: register
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/EndpointView'
+  /v1/virtual-accounts:
+    get:
+      tags:
+        - Virtual Accounts
+      operationId: list_1
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountView'
+    post:
+      tags:
+        - Virtual Accounts
+      operationId: mint
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MintRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AccountView'
+  /v1/virtual-accounts/{vaId}/credits:
+    post:
+      tags:
+        - Virtual Accounts
+      operationId: credit
+      parameters:
+        - name: vaId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreditRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CreditView'
+  /v1/virtual-accounts/{vaId}/close:
+    post:
+      tags:
+        - Virtual Accounts
+      operationId: close
+      parameters:
+        - name: vaId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AccountView'
+  /v1/tds/deductions:
+    get:
+      tags:
+        - TDS / TCS
+      operationId: list_2
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DeductionView'
+    post:
+      tags:
+        - TDS / TCS
+      operationId: record
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordDeductionRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/DeductionView'
+  /v1/tds/deductions/{deductionId}/certificate:
+    post:
+      tags:
+        - TDS / TCS
+      operationId: issueCertificate
+      parameters:
+        - name: deductionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/DeductionView'
+  /v1/subscriptions:
+    get:
+      tags:
+        - Billing
+      operationId: listSubscriptions
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubscriptionView'
+    post:
+      tags:
+        - Billing
+      operationId: createSubscription
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSubscriptionRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SubscriptionView'
+  /v1/subscriptions/{id}/upgrade:
+    post:
+      tags:
+        - Billing
+      operationId: upgradeSubscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpgradePlanRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UpgradeView'
+  /v1/subscriptions/{id}/resume:
+    post:
+      tags:
+        - Billing
+      operationId: resumeSubscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SubscriptionView'
+  /v1/subscriptions/{id}/pause:
+    post:
+      tags:
+        - Billing
+      operationId: pauseSubscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SubscriptionView'
+  /v1/subscriptions/{id}/downgrade:
+    post:
+      tags:
+        - Billing
+      operationId: downgradeSubscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpgradePlanRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SubscriptionView'
+  /v1/subscriptions/{id}/cancel:
+    post:
+      tags:
+        - Billing
+      operationId: cancelSubscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: atPeriodEnd
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SubscriptionView'
+  /v1/settlements:
+    get:
+      tags:
+        - Reconciliation
+      operationId: list_3
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SettlementView'
+    post:
+      tags:
+        - Reconciliation
+      operationId: ingest
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestSettlementRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/revrec/schedules:
+    get:
+      tags:
+        - Revenue Recognition
+      operationId: list_4
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ScheduleSummary'
+    post:
+      tags:
+        - Revenue Recognition
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateScheduleRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ScheduleView'
+  /v1/revrec/schedules/{scheduleId}/recognize:
+    post:
+      tags:
+        - Revenue Recognition
+      operationId: recognize
+      parameters:
+        - name: scheduleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: asOf
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ScheduleView'
+  /v1/plans:
+    get:
+      tags:
+        - Billing
+      operationId: listPlans
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlanView'
+    post:
+      tags:
+        - Billing
+      operationId: createPlan
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePlanRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PlanView'
+  /v1/payouts:
+    post:
+      tags:
+        - Payouts
+      operationId: create_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePayoutRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PayoutView'
+  /v1/payouts/{id}/reject:
+    post:
+      tags:
+        - Payouts
+      operationId: reject
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PayoutView'
+  /v1/payouts/{id}/approve:
+    post:
+      tags:
+        - Payouts
+      operationId: approve
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/payout-batches:
+    get:
+      tags:
+        - Payouts
+      operationId: list_5
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PayoutBatchSummaryView'
+    post:
+      tags:
+        - Payouts
+      operationId: create_2
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBatchRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PayoutBatchView'
+  /v1/payout-batches/{id}/reject:
+    post:
+      tags:
+        - Payouts
+      operationId: reject_1
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PayoutBatchView'
+  /v1/payout-batches/{id}/approve:
+    post:
+      tags:
+        - Payouts
+      operationId: approve_1
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/payout-batches/csv:
+    post:
+      tags:
+        - Payouts
+      operationId: createFromCsv
+      parameters:
+        - name: currency
+          in: query
+          required: false
+          schema:
+            type: string
+            default: INR
+        - name: description
+          in: query
+          required: false
+          schema:
+            type: string
+      requestBody:
+        content:
+          text/csv:
+            schema:
+              type: string
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PayoutBatchView'
+  /v1/payments:
+    get:
+      tags:
+        - Payments
+      operationId: list_6
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentView'
+    post:
+      tags:
+        - Payments
+      operationId: create_3
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PaymentView'
+  /v1/payments/{id}/refund:
+    post:
+      tags:
+        - Payments
+      operationId: refund
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/payments/{id}/capture:
+    post:
+      tags:
+        - Payments
+      operationId: capture
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/payments/razorpay/webhook:
+    post:
+      tags:
+        - Payments
+      operationId: handleWebhook
+      parameters:
+        - name: X-Razorpay-Signature
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+        required: true
+      responses:
+        '200':
+          description: OK
+  /v1/payment-links:
+    get:
+      tags:
+        - Payment Links
+      operationId: list_7
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LinkView'
+    post:
+      tags:
+        - Payment Links
+      operationId: create_4
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLinkRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LinkView'
+  /v1/payment-links/{linkId}/cancel:
+    post:
+      tags:
+        - Payment Links
+      operationId: cancel
+      parameters:
+        - name: linkId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LinkView'
+  /v1/payment-links/{code}/pay:
+    post:
+      tags:
+        - Payment Links
+      operationId: pay
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LinkView'
+  /v1/messaging/dispatches/{dispatchId}/failed:
+    post:
+      tags:
+        - Messaging
+      operationId: failed
+      parameters:
+        - name: dispatchId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FailedRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/DispatchView'
+  /v1/messaging/dispatches/{dispatchId}/delivered:
+    post:
+      tags:
+        - Messaging
+      operationId: delivered
+      parameters:
+        - name: dispatchId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeliveredRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/DispatchView'
+  /v1/messaging/dispatch:
+    post:
+      tags:
+        - Messaging
+      operationId: dispatch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DispatchRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/DispatchView'
+  /v1/merchants:
+    post:
+      tags:
+        - Merchants
+      operationId: create_5
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMerchantRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CreateMerchantResponse'
+  /v1/merchants/kyb/pan:
+    post:
+      tags:
+        - KYB
+      operationId: submitPan
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PanRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/KybView'
+  /v1/merchants/kyb/gstin:
+    post:
+      tags:
+        - KYB
+      operationId: submitGstin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GstinRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/KybView'
+  /v1/merchants/kyb/bank:
+    post:
+      tags:
+        - KYB
+      operationId: submitBank
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BankRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/KybView'
+  /v1/marketplace/splits:
+    get:
+      tags:
+        - Marketplace
+      operationId: listSplits
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SplitSummary'
+    post:
+      tags:
+        - Marketplace
+      operationId: createSplit
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSplitRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SplitView'
+  /v1/marketplace/splits/{splitId}/cancel:
+    post:
+      tags:
+        - Marketplace
+      operationId: cancelSplit
+      parameters:
+        - name: splitId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SplitView'
+  /v1/marketplace/sellers:
+    get:
+      tags:
+        - Marketplace
+      operationId: listSellers
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SellerView'
+    post:
+      tags:
+        - Marketplace
+      operationId: registerSeller
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterSellerRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SellerView'
+  /v1/marketplace/sellers/{sellerId}/suspend:
+    post:
+      tags:
+        - Marketplace
+      operationId: suspend
+      parameters:
+        - name: sellerId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SellerView'
+  /v1/marketplace/sellers/{sellerId}/activate:
+    post:
+      tags:
+        - Marketplace
+      operationId: activate
+      parameters:
+        - name: sellerId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SellerView'
+  /v1/mandates:
+    get:
+      tags:
+        - Mandates
+      operationId: list_8
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MandateView'
+    post:
+      tags:
+        - Mandates
+      operationId: create_6
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMandateRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MandateView'
+  /v1/mandates/{id}/revoke:
+    post:
+      tags:
+        - Mandates
+      operationId: revoke
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MandateView'
+  /v1/mandates/{id}/pause:
+    post:
+      tags:
+        - Mandates
+      operationId: pause
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MandateView'
+  /v1/mandates/{id}/debit:
+    post:
+      tags:
+        - Mandates
+      operationId: debit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DebitRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/mandates/{id}/activate:
+    post:
+      tags:
+        - Mandates
+      operationId: activate_1
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MandateView'
+  /v1/lending/offers:
+    get:
+      tags:
+        - Lending
+      operationId: listOffers
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OfferView'
+    post:
+      tags:
+        - Lending
+      operationId: requestOffer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OfferRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/OfferView'
+  /v1/lending/offers/{offerId}/accept:
+    post:
+      tags:
+        - Lending
+      operationId: accept
+      parameters:
+        - name: offerId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LoanView'
+  /v1/lending/loans/{loanId}/repayments:
+    post:
+      tags:
+        - Lending
+      operationId: applyRepayment
+      parameters:
+        - name: loanId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RepaymentRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LoanView'
+  /v1/ledger/entries:
+    post:
+      tags:
+        - Ledger
+      operationId: postEntry
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostEntryRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/itc/reconcile:
+    post:
+      tags:
+        - Input Tax Credit
+      operationId: reconcile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReconcileRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ReconSummary'
+  /v1/itc/purchases:
+    get:
+      tags:
+        - Input Tax Credit
+      operationId: list_9
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PurchaseView'
+    post:
+      tags:
+        - Input Tax Credit
+      operationId: record_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordPurchaseRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PurchaseView'
+  /v1/invoices/{id}/pay:
+    post:
+      tags:
+        - Billing
+      operationId: payInvoice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/insurance/policies:
+    get:
+      tags:
+        - Insurance
+      operationId: list_10
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PolicySummary'
+    post:
+      tags:
+        - Insurance
+      operationId: issue
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssuePolicyRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PolicyView'
+  /v1/insurance/policies/{policyId}/claims:
+    post:
+      tags:
+        - Insurance
+      operationId: fileClaim
+      parameters:
+        - name: policyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileClaimRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ClaimView'
+  /v1/insurance/policies/{policyId}/cancel:
+    post:
+      tags:
+        - Insurance
+      operationId: cancel_1
+      parameters:
+        - name: policyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PolicyView'
+  /v1/insurance/claims/{claimId}/reject:
+    post:
+      tags:
+        - Insurance
+      operationId: reject_2
+      parameters:
+        - name: claimId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ClaimView'
+  /v1/insurance/claims/{claimId}/approve:
+    post:
+      tags:
+        - Insurance
+      operationId: approve_2
+      parameters:
+        - name: claimId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ClaimView'
+  /v1/gst/returns/{returnId}/file:
+    post:
+      tags:
+        - GST Returns
+      operationId: file
+      parameters:
+        - name: returnId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ReturnSummary'
+  /v1/gst/returns/prepare:
+    post:
+      tags:
+        - GST Returns
+      operationId: prepare
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrepareRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ReturnView'
+  /v1/gst/notes/{noteId}/cancel:
+    post:
+      tags:
+        - GST Invoicing
+      operationId: cancelNote
+      parameters:
+        - name: noteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NoteView'
+  /v1/gst/notes/{noteId}/apply:
+    post:
+      tags:
+        - GST Invoicing
+      operationId: applyNote
+      parameters:
+        - name: noteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NoteView'
+  /v1/gst/invoices:
+    get:
+      tags:
+        - GST Invoicing
+      operationId: list_11
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InvoiceView'
+    post:
+      tags:
+        - GST Invoicing
+      operationId: create_7
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInvoiceRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/InvoiceView'
+  /v1/gst/invoices/{invoiceId}/irn:
+    get:
+      tags:
+        - E-Invoicing (IRN)
+      operationId: get
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/IrnView'
+    post:
+      tags:
+        - E-Invoicing (IRN)
+      operationId: generate
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/IrnView'
+  /v1/gst/invoices/{invoiceId}/irn/cancel:
+    post:
+      tags:
+        - E-Invoicing (IRN)
+      operationId: cancel_2
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/IrnView'
+  /v1/gst/invoices/{invoiceId}/debit-note:
+    post:
+      tags:
+        - GST Invoicing
+      operationId: debitNote
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NoteView'
+  /v1/gst/invoices/{invoiceId}/credit-note:
+    post:
+      tags:
+        - GST Invoicing
+      operationId: creditNote
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NoteView'
+  /v1/gst/invoices/{id}/pay:
+    post:
+      tags:
+        - GST Invoicing
+      operationId: pay_1
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/gst/gstins:
+    get:
+      tags:
+        - GST Invoicing
+      operationId: listGstins
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GstinView'
+    post:
+      tags:
+        - GST Invoicing
+      operationId: registerGstin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterGstinRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/GstinView'
+  /v1/esg/offsets:
+    post:
+      tags:
+        - ESG / Carbon
+      operationId: offset
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OffsetRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/OffsetView'
+  /v1/esg/footprints:
+    get:
+      tags:
+        - ESG / Carbon
+      operationId: list_12
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RecordView'
+    post:
+      tags:
+        - ESG / Carbon
+      operationId: record_2
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FootprintRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/RecordView'
+  /v1/escrow:
+    get:
+      tags:
+        - Escrow
+      operationId: list_13
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AgreementSummary'
+    post:
+      tags:
+        - Escrow
+      operationId: hold
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HoldRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AgreementView'
+  /v1/escrow/{escrowId}/release:
+    post:
+      tags:
+        - Escrow
+      operationId: release
+      parameters:
+        - name: escrowId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MovementRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AgreementView'
+  /v1/escrow/{escrowId}/refund:
+    post:
+      tags:
+        - Escrow
+      operationId: refund_1
+      parameters:
+        - name: escrowId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MovementRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AgreementView'
+  /v1/dunning/subscriptions/{subscriptionId}/trigger-smart:
+    post:
+      tags:
+        - Dunning
+      operationId: triggerSmart
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassifyRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AttemptView'
+  /v1/dunning/rules:
+    get:
+      tags:
+        - Dunning
+      operationId: listRules
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RuleView'
+    post:
+      tags:
+        - Dunning
+      operationId: createRule
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRuleRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/RuleView'
+  /v1/dunning/classify:
+    post:
+      tags:
+        - Dunning
+      operationId: classify
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassifyRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ClassificationView'
+  /v1/crossborder/export-invoices:
+    get:
+      tags:
+        - Cross-Border
+      operationId: list_14
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InvoiceSummary'
+    post:
+      tags:
+        - Cross-Border
+      operationId: create_8
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExportInvoiceRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/InvoiceView'
+  /v1/crossborder/export-invoices/{exportInvoiceId}/remittances:
+    post:
+      tags:
+        - Cross-Border
+      operationId: recordRemittance
+      parameters:
+        - name: exportInvoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemittanceRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/RemittanceView'
+  /v1/checkout/{code}/pay:
+    post:
+      tags:
+        - Checkout
+      operationId: pay_2
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PayResult'
+  /v1/cards:
+    get:
+      tags:
+        - Cards
+      operationId: list_15
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CardSummary'
+    post:
+      tags:
+        - Cards
+      operationId: issue_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssueRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CardView'
+  /v1/cards/{cardId}/unfreeze:
+    post:
+      tags:
+        - Cards
+      operationId: unfreeze
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CardView'
+  /v1/cards/{cardId}/spend:
+    post:
+      tags:
+        - Cards
+      operationId: spend
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpendRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CardView'
+  /v1/cards/{cardId}/load:
+    post:
+      tags:
+        - Cards
+      operationId: load
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AmountRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CardView'
+  /v1/cards/{cardId}/freeze:
+    post:
+      tags:
+        - Cards
+      operationId: freeze
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CardView'
+  /v1/cards/{cardId}/close:
+    post:
+      tags:
+        - Cards
+      operationId: close_1
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CardView'
+  /v1/bnpl/agreements:
+    get:
+      tags:
+        - BNPL
+      operationId: list_16
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AgreementSummary'
+    post:
+      tags:
+        - BNPL
+      operationId: create_9
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAgreementRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AgreementView'
+  /v1/bnpl/agreements/{agreementId}/installments/{seq}/pay:
+    post:
+      tags:
+        - BNPL
+      operationId: pay_3
+      parameters:
+        - name: agreementId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: seq
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AgreementView'
+  /v1/billing/usage:
+    post:
+      tags:
+        - Billing
+      operationId: ingestUsage
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsageRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+  /v1/webhooks/endpoints/{id}/deliveries:
+    get:
+      tags:
+        - Webhooks
+      operationId: deliveries
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DeliveryView'
+  /v1/virtual-accounts/{vaId}:
+    get:
+      tags:
+        - Virtual Accounts
+      operationId: get_1
+      parameters:
+        - name: vaId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AccountWithCreditsView'
+  /v1/tds/summary:
+    get:
+      tags:
+        - TDS / TCS
+      operationId: summary
+      parameters:
+        - name: quarter
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SummaryView'
+  /v1/tds/deductions/{deductionId}:
+    get:
+      tags:
+        - TDS / TCS
+      operationId: get_2
+      parameters:
+        - name: deductionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/DeductionView'
+  /v1/subscriptions/{id}:
+    get:
+      tags:
+        - Billing
+      operationId: getSubscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SubscriptionView'
+  /v1/settlements/{id}:
+    get:
+      tags:
+        - Reconciliation
+      operationId: get_3
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SettlementView'
+  /v1/revrec/schedules/{scheduleId}:
+    get:
+      tags:
+        - Revenue Recognition
+      operationId: get_4
+      parameters:
+        - name: scheduleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ScheduleView'
+  /v1/payouts/{id}:
+    get:
+      tags:
+        - Payouts
+      operationId: get_5
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PayoutView'
+  /v1/payout-batches/{id}:
+    get:
+      tags:
+        - Payouts
+      operationId: get_6
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PayoutBatchView'
+  /v1/payments/{id}:
+    get:
+      tags:
+        - Payments
+      operationId: get_7
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PaymentView'
+  /v1/payments/{id}/refunds:
+    get:
+      tags:
+        - Payments
+      operationId: refunds
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RefundView'
+  /v1/payments/providers/scorecards:
+    get:
+      tags:
+        - Orchestration
+      operationId: scorecards
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ScorecardView'
+  /v1/payment-links/{linkId}:
+    get:
+      tags:
+        - Payment Links
+      operationId: get_8
+      parameters:
+        - name: linkId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LinkView'
+  /v1/payment-links/by-code/{code}:
+    get:
+      tags:
+        - Payment Links
+      operationId: getByCode
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LinkView'
+  /v1/messaging/dispatches:
+    get:
+      tags:
+        - Messaging
+      operationId: listDispatches
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DispatchView'
+  /v1/messaging/dispatches/{dispatchId}:
+    get:
+      tags:
+        - Messaging
+      operationId: getDispatch
+      parameters:
+        - name: dispatchId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/DispatchView'
+  /v1/merchants/me:
+    get:
+      tags:
+        - Merchants
+      operationId: me
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MerchantView'
+  /v1/merchants/kyb/status:
+    get:
+      tags:
+        - KYB
+      operationId: status
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/KybView'
+  /v1/me:
+    get:
+      tags:
+        - Platform
+      operationId: me_1
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MeResponse'
+  /v1/marketplace/splits/{splitId}:
+    get:
+      tags:
+        - Marketplace
+      operationId: getSplit
+      parameters:
+        - name: splitId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SplitView'
+  /v1/mandates/{id}:
+    get:
+      tags:
+        - Mandates
+      operationId: get_9
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MandateView'
+  /v1/mandates/{id}/debits:
+    get:
+      tags:
+        - Mandates
+      operationId: debits
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MandateDebitView'
+  /v1/lending/loans:
+    get:
+      tags:
+        - Lending
+      operationId: listLoans
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LoanSummary'
+  /v1/lending/loans/{loanId}:
+    get:
+      tags:
+        - Lending
+      operationId: getLoan
+      parameters:
+        - name: loanId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LoanView'
+  /v1/ledger/accounts:
+    get:
+      tags:
+        - Ledger
+      operationId: accounts
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountView'
+  /v1/ledger/accounts/{id}/balance:
+    get:
+      tags:
+        - Ledger
+      operationId: balance
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/BalanceView'
+  /v1/itc/purchases/{id}:
+    get:
+      tags:
+        - Input Tax Credit
+      operationId: get_10
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PurchaseView'
+  /v1/itc/eligible-summary:
+    get:
+      tags:
+        - Input Tax Credit
+      operationId: eligibleSummary
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/EligibleItcSummary'
+  /v1/invoices:
+    get:
+      tags:
+        - Billing
+      operationId: listInvoices
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InvoiceView'
+  /v1/invoices/{id}:
+    get:
+      tags:
+        - Billing
+      operationId: getInvoice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/InvoiceView'
+  /v1/insurance/policies/{policyId}:
+    get:
+      tags:
+        - Insurance
+      operationId: get_11
+      parameters:
+        - name: policyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PolicyView'
+  /v1/gst/returns:
+    get:
+      tags:
+        - GST Returns
+      operationId: list_17
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReturnSummary'
+  /v1/gst/returns/{returnId}:
+    get:
+      tags:
+        - GST Returns
+      operationId: get_12
+      parameters:
+        - name: returnId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ReturnView'
+  /v1/gst/notes:
+    get:
+      tags:
+        - GST Invoicing
+      operationId: listNotes
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NoteView'
+  /v1/gst/invoices/{id}:
+    get:
+      tags:
+        - GST Invoicing
+      operationId: get_13
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/InvoiceView'
+  /v1/esg/summary:
+    get:
+      tags:
+        - ESG / Carbon
+      operationId: summary_1
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FootprintSummary'
+  /v1/escrow/{escrowId}:
+    get:
+      tags:
+        - Escrow
+      operationId: get_14
+      parameters:
+        - name: escrowId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AgreementView'
+  /v1/dunning/subscriptions/{subscriptionId}/attempts:
+    get:
+      tags:
+        - Dunning
+      operationId: attempts
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AttemptView'
+  /v1/crossborder/export-invoices/{exportInvoiceId}:
+    get:
+      tags:
+        - Cross-Border
+      operationId: get_15
+      parameters:
+        - name: exportInvoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/InvoiceView'
+  /v1/checkout/{code}:
+    get:
+      tags:
+        - Checkout
+      operationId: get_16
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicView'
+  /v1/cards/{cardId}:
+    get:
+      tags:
+        - Cards
+      operationId: get_17
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CardView'
+  /v1/bnpl/agreements/{agreementId}:
+    get:
+      tags:
+        - BNPL
+      operationId: get_18
+      parameters:
+        - name: agreementId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AgreementView'
+  /v1/billing/usage/{subscriptionId}:
+    get:
+      tags:
+        - Billing
+      operationId: getUsage
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: metricKey
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UsageSummary'
+  /v1/analytics/tpv:
+    get:
+      tags:
+        - Analytics
+      operationId: tpv
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: granularity
+          in: query
+          required: false
+          schema:
+            type: string
+            default: DAY
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TpvBucket'
+  /v1/analytics/success-rate:
+    get:
+      tags:
+        - Analytics
+      operationId: successRate
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: method
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SuccessRate'
+  /v1/analytics/mrr:
+    get:
+      tags:
+        - Analytics
+      operationId: mrr
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MrrWaterfallRow'
+  /v1/analytics/cash-flow-forecast:
+    get:
+      tags:
+        - Analytics
+      operationId: cashFlowForecast
+      parameters:
+        - name: horizonDays
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 30
+        - name: windowDays
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 30
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CashFlowForecast'
+  /v1/analytics/arr:
+    get:
+      tags:
+        - Analytics
+      operationId: arr
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ArrView'
+  /readyz:
+    get:
+      tags:
+        - Platform
+      operationId: readyz
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  /healthz:
+    get:
+      tags:
+        - Platform
+      operationId: healthz
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  /v1/webhooks/endpoints/{id}:
+    delete:
+      tags:
+        - Webhooks
+      operationId: disable
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+components:
+  schemas:
+    CostRequest:
+      type: object
+      properties:
+        costBps:
+          type: integer
+          format: int32
+          maximum: 10000
+          minimum: 0
+    ScorecardView:
+      type: object
+      properties:
+        provider:
+          type: string
+        attempts:
+          type: integer
+          format: int64
+        successes:
+          type: integer
+          format: int64
+        failures:
+          type: integer
+          format: int64
+        authRate:
+          type: number
+          format: double
+        consecutiveFailures:
+          type: integer
+          format: int32
+        costBps:
+          type: integer
+          format: int32
+        health:
+          type: string
+        lastOutcomeAt:
+          type: string
+          format: date-time
+    TemplateRequest:
+      type: object
+      properties:
+        templateKey:
+          type: string
+          minLength: 1
+        channel:
+          type: string
+          enum:
+            - WHATSAPP
+            - SMS
+            - EMAIL
+        body:
+          type: string
+          minLength: 1
+      required:
+        - body
+        - channel
+        - templateKey
+    TemplateView:
+      type: object
+      properties:
+        id:
+          type: string
+        templateKey:
+          type: string
+        channel:
+          type: string
+        body:
+          type: string
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    RegisterRequest:
+      type: object
+      properties:
+        url:
+          type: string
+          minLength: 1
+        events:
+          type: string
+        signingSecret:
+          type: string
+          minLength: 1
+      required:
+        - signingSecret
+        - url
+    EndpointView:
+      type: object
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+        events:
+          type: string
+        status:
+          type: string
+    MintRequest:
+      type: object
+      properties:
+        customerRef:
+          type: string
+          minLength: 1
+      required:
+        - customerRef
+    AccountView:
+      type: object
+      properties:
+        id:
+          type: string
+        customerRef:
+          type: string
+        vaNumber:
+          type: string
+        ifsc:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+    CreditRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        utr:
+          type: string
+          minLength: 1
+        payerName:
+          type: string
+        payerRef:
+          type: string
+      required:
+        - amountMinor
+        - currency
+        - utr
+    CreditView:
+      type: object
+      properties:
+        id:
+          type: string
+        vaId:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        utr:
+          type: string
+        payerName:
+          type: string
+        payerRef:
+          type: string
+        ledgerEntryId:
+          type: string
+        creditedAt:
+          type: string
+          format: date-time
+    RecordDeductionRequest:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum:
+            - TDS
+            - TCS
+        section:
+          type: string
+          minLength: 1
+        deducteeName:
+          type: string
+          minLength: 1
+        deducteePan:
+          type: string
+        grossMinor:
+          type: integer
+          format: int64
+        rateBps:
+          type: integer
+          format: int32
+        transactionRef:
+          type: string
+        deductedOn:
+          type: string
+          format: date
+      required:
+        - deductedOn
+        - deducteeName
+        - grossMinor
+        - kind
+        - rateBps
+        - section
+    DeductionView:
+      type: object
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+        section:
+          type: string
+        deducteeName:
+          type: string
+        deducteePan:
+          type: string
+        grossMinor:
+          type: integer
+          format: int64
+        rateBps:
+          type: integer
+          format: int32
+        taxMinor:
+          type: integer
+          format: int64
+        transactionRef:
+          type: string
+        deductedOn:
+          type: string
+          format: date
+        quarter:
+          type: string
+        certificateNo:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    CreateSubscriptionRequest:
+      type: object
+      properties:
+        planId:
+          type: string
+          format: uuid
+        customerRef:
+          type: string
+          minLength: 1
+      required:
+        - customerRef
+        - planId
+    SubscriptionView:
+      type: object
+      properties:
+        id:
+          type: string
+        planId:
+          type: string
+        status:
+          type: string
+        firstInvoiceId:
+          type: string
+        cancelAtPeriodEnd:
+          type: boolean
+    UpgradePlanRequest:
+      type: object
+      properties:
+        newPlanId:
+          type: string
+          format: uuid
+      required:
+        - newPlanId
+    UpgradeView:
+      type: object
+      properties:
+        subscriptionId:
+          type: string
+        newPlanId:
+          type: string
+        prorationMinor:
+          type: integer
+          format: int64
+        prorationInvoiceId:
+          type: string
+    IngestSettlementRequest:
+      type: object
+      properties:
+        provider:
+          type: string
+          minLength: 1
+        providerSettlementId:
+          type: string
+          minLength: 1
+        currency:
+          type: string
+          minLength: 1
+        settledAt:
+          type: string
+          format: date-time
+        reportedNetMinor:
+          type: integer
+          format: int64
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LineDto'
+          minItems: 1
+      required:
+        - currency
+        - items
+        - provider
+        - providerSettlementId
+    LineDto:
+      type: object
+      properties:
+        paymentId:
+          type: string
+          format: uuid
+        providerPaymentId:
+          type: string
+        grossMinor:
+          type: integer
+          format: int64
+        feeMinor:
+          type: integer
+          format: int64
+        taxMinor:
+          type: integer
+          format: int64
+    CreateScheduleRequest:
+      type: object
+      properties:
+        sourceType:
+          type: string
+          minLength: 1
+        sourceRef:
+          type: string
+        totalMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        method:
+          type: string
+          enum:
+            - STRAIGHT_LINE
+            - IMMEDIATE
+        start:
+          type: string
+          format: date
+        periods:
+          type: integer
+          format: int32
+      required:
+        - currency
+        - sourceType
+        - totalMinor
+    EntryView:
+      type: object
+      properties:
+        id:
+          type: string
+        seq:
+          type: integer
+          format: int32
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+        amountMinor:
+          type: integer
+          format: int64
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+        recognizedAt:
+          type: string
+          format: date-time
+    ScheduleSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        sourceType:
+          type: string
+        sourceRef:
+          type: string
+        currency:
+          type: string
+        totalMinor:
+          type: integer
+          format: int64
+        recognizedMinor:
+          type: integer
+          format: int64
+        method:
+          type: string
+        status:
+          type: string
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+    ScheduleView:
+      type: object
+      properties:
+        schedule:
+          $ref: '#/components/schemas/ScheduleSummary'
+        deferralEntryId:
+          type: string
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/EntryView'
+    CreatePlanRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          minLength: 1
+        name:
+          type: string
+          minLength: 1
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        interval:
+          type: string
+          enum:
+            - MONTH
+            - YEAR
+        pricingModel:
+          type: string
+          enum:
+            - FLAT
+            - PER_UNIT
+            - TIERED
+            - VOLUME
+            - HYBRID
+        tiers:
+          type: string
+        usageMetricKey:
+          type: string
+        trialDays:
+          type: integer
+          format: int32
+      required:
+        - code
+        - currency
+        - interval
+        - name
+    PlanView:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        interval:
+          type: string
+        pricingModel:
+          type: string
+        trialDays:
+          type: integer
+          format: int32
+    CreatePayoutRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        rail:
+          type: string
+          enum:
+            - UPI
+            - IMPS
+            - NEFT
+            - RTGS
+        destination:
+          type: string
+          minLength: 1
+        description:
+          type: string
+      required:
+        - currency
+        - destination
+        - rail
+    PayoutView:
+      type: object
+      properties:
+        id:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        rail:
+          type: string
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+    CreateBatchRequest:
+      type: object
+      properties:
+        currency:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        payouts:
+          type: array
+          items:
+            $ref: '#/components/schemas/PayoutLineDto'
+          minItems: 1
+      required:
+        - currency
+        - payouts
+    PayoutLineDto:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        rail:
+          type: string
+          enum:
+            - UPI
+            - IMPS
+            - NEFT
+            - RTGS
+        destination:
+          type: string
+          minLength: 1
+        description:
+          type: string
+      required:
+        - destination
+        - rail
+    PayoutBatchView:
+      type: object
+      properties:
+        id:
+          type: string
+        currency:
+          type: string
+        status:
+          type: string
+        totalCount:
+          type: integer
+          format: int32
+        totalAmountMinor:
+          type: integer
+          format: int64
+        paidCount:
+          type: integer
+          format: int32
+        failedCount:
+          type: integer
+          format: int32
+        description:
+          type: string
+        payouts:
+          type: array
+          items:
+            $ref: '#/components/schemas/PayoutLineView'
+    PayoutLineView:
+      type: object
+      properties:
+        id:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        rail:
+          type: string
+        destination:
+          type: string
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+    CreatePaymentRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        method:
+          type: string
+          enum:
+            - UPI
+            - CARD
+            - NET_BANKING
+            - WALLET
+        description:
+          type: string
+        simulateFailure:
+          type: boolean
+      required:
+        - currency
+        - method
+    PaymentView:
+      type: object
+      properties:
+        id:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        method:
+          type: string
+        status:
+          type: string
+        providerPaymentId:
+          type: string
+        ledgerEntryId:
+          type: string
+    RefundRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        reason:
+          type: string
+    CreateLinkRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        reference:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+      required:
+        - currency
+        - title
+    LinkView:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        title:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        reference:
+          type: string
+        status:
+          type: string
+        paymentId:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        paidAt:
+          type: string
+          format: date-time
+    PayRequest:
+      type: object
+      properties:
+        method:
+          type: string
+          enum:
+            - UPI
+            - CARD
+            - NET_BANKING
+            - WALLET
+        amountMinor:
+          type: integer
+          format: int64
+        simulateFailure:
+          type: boolean
+      required:
+        - method
+    FailedRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          minLength: 1
+      required:
+        - reason
+    DispatchView:
+      type: object
+      properties:
+        id:
+          type: string
+        templateKey:
+          type: string
+        channel:
+          type: string
+        recipient:
+          type: string
+        renderedBody:
+          type: string
+        status:
+          type: string
+        providerRef:
+          type: string
+        relatedRef:
+          type: string
+        failureReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        sentAt:
+          type: string
+          format: date-time
+    DeliveredRequest:
+      type: object
+      properties:
+        providerRef:
+          type: string
+          minLength: 1
+      required:
+        - providerRef
+    DispatchRequest:
+      type: object
+      properties:
+        templateKey:
+          type: string
+          minLength: 1
+        channel:
+          type: string
+          enum:
+            - WHATSAPP
+            - SMS
+            - EMAIL
+        recipient:
+          type: string
+          minLength: 1
+        variables:
+          type: object
+          additionalProperties:
+            type: string
+        relatedRef:
+          type: string
+      required:
+        - channel
+        - recipient
+        - templateKey
+    CreateMerchantRequest:
+      type: object
+      properties:
+        slug:
+          type: string
+          minLength: 1
+        name:
+          type: string
+          minLength: 1
+      required:
+        - name
+        - slug
+    CreateMerchantResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+        apiKey:
+          type: string
+    PanRequest:
+      type: object
+      properties:
+        pan:
+          type: string
+          minLength: 1
+      required:
+        - pan
+    KybView:
+      type: object
+      properties:
+        merchantId:
+          type: string
+        overallStatus:
+          type: string
+        panStatus:
+          type: string
+        gstinStatus:
+          type: string
+        bankStatus:
+          type: string
+        verifiedAt:
+          type: string
+          format: date-time
+    GstinRequest:
+      type: object
+      properties:
+        gstin:
+          type: string
+          minLength: 1
+      required:
+        - gstin
+    BankRequest:
+      type: object
+      properties:
+        accountNumber:
+          type: string
+          minLength: 1
+        ifsc:
+          type: string
+          minLength: 1
+      required:
+        - accountNumber
+        - ifsc
+    CreateSplitRequest:
+      type: object
+      properties:
+        paymentId:
+          type: string
+          format: uuid
+        sourceRef:
+          type: string
+        currency:
+          type: string
+          minLength: 1
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/SplitLineRequest'
+          minItems: 1
+      required:
+        - currency
+        - lines
+    SplitLineRequest:
+      type: object
+      properties:
+        sellerRef:
+          type: string
+          minLength: 1
+        grossMinor:
+          type: integer
+          format: int64
+        commissionBps:
+          type: integer
+          format: int32
+        commissionGstRate:
+          type: integer
+          format: int32
+        tcsBps:
+          type: integer
+          format: int32
+        tdsBps:
+          type: integer
+          format: int32
+      required:
+        - grossMinor
+        - sellerRef
+    SplitItemView:
+      type: object
+      properties:
+        sellerRef:
+          type: string
+        grossMinor:
+          type: integer
+          format: int64
+        commissionMinor:
+          type: integer
+          format: int64
+        commissionGstMinor:
+          type: integer
+          format: int64
+        tcsMinor:
+          type: integer
+          format: int64
+        tdsMinor:
+          type: integer
+          format: int64
+        netMinor:
+          type: integer
+          format: int64
+    SplitSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        currency:
+          type: string
+        grossMinor:
+          type: integer
+          format: int64
+        commissionMinor:
+          type: integer
+          format: int64
+        commissionGstMinor:
+          type: integer
+          format: int64
+        tcsMinor:
+          type: integer
+          format: int64
+        tdsMinor:
+          type: integer
+          format: int64
+        sellerNetMinor:
+          type: integer
+          format: int64
+        itemCount:
+          type: integer
+          format: int32
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    SplitView:
+      type: object
+      properties:
+        split:
+          $ref: '#/components/schemas/SplitSummary'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SplitItemView'
+    RegisterSellerRequest:
+      type: object
+      properties:
+        sellerRef:
+          type: string
+          minLength: 1
+        name:
+          type: string
+          minLength: 1
+        gstin:
+          type: string
+        pan:
+          type: string
+        commissionBps:
+          type: integer
+          format: int32
+      required:
+        - name
+        - sellerRef
+    SellerView:
+      type: object
+      properties:
+        id:
+          type: string
+        sellerRef:
+          type: string
+        name:
+          type: string
+        gstin:
+          type: string
+        pan:
+          type: string
+        commissionBps:
+          type: integer
+          format: int32
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    CreateMandateRequest:
+      type: object
+      properties:
+        customerRef:
+          type: string
+          minLength: 1
+        type:
+          type: string
+          enum:
+            - UPI_AUTOPAY
+            - NACH
+        limitMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        frequency:
+          type: string
+          enum:
+            - DAILY
+            - WEEKLY
+            - MONTHLY
+            - YEARLY
+            - AS_PRESENTED
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+      required:
+        - customerRef
+        - frequency
+        - startDate
+        - type
+    MandateView:
+      type: object
+      properties:
+        id:
+          type: string
+        customerId:
+          type: string
+        type:
+          type: string
+        limitMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        frequency:
+          type: string
+        startDate:
+          type: string
+        endDate:
+          type: string
+        status:
+          type: string
+        providerMandateId:
+          type: string
+    DebitRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        description:
+          type: string
+    ActivateRequest:
+      type: object
+      properties:
+        providerMandateId:
+          type: string
+    OfferRequest:
+      type: object
+      properties:
+        currency:
+          type: string
+          minLength: 1
+        avgMonthlyVolumeMinor:
+          type: integer
+          format: int64
+      required:
+        - avgMonthlyVolumeMinor
+        - currency
+    OfferView:
+      type: object
+      properties:
+        id:
+          type: string
+        currency:
+          type: string
+        principalMinor:
+          type: integer
+          format: int64
+        feeBps:
+          type: integer
+          format: int32
+        feeMinor:
+          type: integer
+          format: int64
+        totalRepayableMinor:
+          type: integer
+          format: int64
+        repaymentPercentBps:
+          type: integer
+          format: int32
+        status:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+    LoanSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        offerId:
+          type: string
+        currency:
+          type: string
+        principalMinor:
+          type: integer
+          format: int64
+        feeMinor:
+          type: integer
+          format: int64
+        totalRepayableMinor:
+          type: integer
+          format: int64
+        outstandingMinor:
+          type: integer
+          format: int64
+        repaymentPercentBps:
+          type: integer
+          format: int32
+        status:
+          type: string
+        disbursedEntryId:
+          type: string
+        disbursedAt:
+          type: string
+          format: date-time
+        repaidAt:
+          type: string
+          format: date-time
+    LoanView:
+      type: object
+      properties:
+        loan:
+          $ref: '#/components/schemas/LoanSummary'
+        repayments:
+          type: array
+          items:
+            $ref: '#/components/schemas/RepaymentView'
+    RepaymentView:
+      type: object
+      properties:
+        settlementAmountMinor:
+          type: integer
+          format: int64
+        sweptMinor:
+          type: integer
+          format: int64
+        ledgerEntryId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    RepaymentRequest:
+      type: object
+      properties:
+        settlementAmountMinor:
+          type: integer
+          format: int64
+        sourceRef:
+          type: string
+      required:
+        - settlementAmountMinor
+    PostEntryRequest:
+      type: object
+      properties:
+        description:
+          type: string
+          minLength: 1
+        currency:
+          type: string
+          minLength: 1
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/LineDto'
+          minItems: 1
+      required:
+        - currency
+        - description
+        - lines
+    Gstr2bLine:
+      type: object
+      properties:
+        supplierGstin:
+          type: string
+        invoiceNumber:
+          type: string
+        totalGstMinor:
+          type: integer
+          format: int64
+    ReconcileRequest:
+      type: object
+      properties:
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/Gstr2bLine'
+      required:
+        - lines
+    ReconSummary:
+      type: object
+      properties:
+        matched:
+          type: integer
+          format: int32
+        mismatched:
+          type: integer
+          format: int32
+        missingIn2b:
+          type: integer
+          format: int32
+    RecordPurchaseRequest:
+      type: object
+      properties:
+        supplierGstin:
+          type: string
+          minLength: 1
+        supplierName:
+          type: string
+          minLength: 1
+        invoiceNumber:
+          type: string
+          minLength: 1
+        invoiceDate:
+          type: string
+          format: date
+        taxableMinor:
+          type: integer
+          format: int64
+        cgstMinor:
+          type: integer
+          format: int64
+        sgstMinor:
+          type: integer
+          format: int64
+        igstMinor:
+          type: integer
+          format: int64
+        itcEligible:
+          type: boolean
+      required:
+        - invoiceDate
+        - invoiceNumber
+        - supplierGstin
+        - supplierName
+    PurchaseView:
+      type: object
+      properties:
+        id:
+          type: string
+        supplierGstin:
+          type: string
+        supplierName:
+          type: string
+        invoiceNumber:
+          type: string
+        invoiceDate:
+          type: string
+          format: date
+        taxableMinor:
+          type: integer
+          format: int64
+        cgstMinor:
+          type: integer
+          format: int64
+        sgstMinor:
+          type: integer
+          format: int64
+        igstMinor:
+          type: integer
+          format: int64
+        totalGstMinor:
+          type: integer
+          format: int64
+        itcEligible:
+          type: boolean
+        reconStatus:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        reconciledAt:
+          type: string
+          format: date-time
+    IssuePolicyRequest:
+      type: object
+      properties:
+        product:
+          type: string
+          enum:
+            - PAYMENT_PROTECTION
+            - FRAUD_COVER
+            - SUBSCRIPTION_INTERRUPTION
+        holderRef:
+          type: string
+          minLength: 1
+        premiumMinor:
+          type: integer
+          format: int64
+        coverAmountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+      required:
+        - coverAmountMinor
+        - currency
+        - holderRef
+        - premiumMinor
+        - product
+    ClaimView:
+      type: object
+      properties:
+        id:
+          type: string
+        policyId:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        reason:
+          type: string
+        status:
+          type: string
+        payoutEntryId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        decidedAt:
+          type: string
+          format: date-time
+    PolicySummary:
+      type: object
+      properties:
+        id:
+          type: string
+        product:
+          type: string
+        holderRef:
+          type: string
+        currency:
+          type: string
+        premiumMinor:
+          type: integer
+          format: int64
+        coverAmountMinor:
+          type: integer
+          format: int64
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        cancelledAt:
+          type: string
+          format: date-time
+    PolicyView:
+      type: object
+      properties:
+        policy:
+          $ref: '#/components/schemas/PolicySummary'
+        claims:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimView'
+    FileClaimRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        reason:
+          type: string
+      required:
+        - amountMinor
+    RejectRequest:
+      type: object
+      properties:
+        note:
+          type: string
+    ReturnSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        period:
+          type: string
+        status:
+          type: string
+        invoiceCount:
+          type: integer
+          format: int32
+        totalTaxableMinor:
+          type: integer
+          format: int64
+        totalCgstMinor:
+          type: integer
+          format: int64
+        totalSgstMinor:
+          type: integer
+          format: int64
+        totalIgstMinor:
+          type: integer
+          format: int64
+        totalTaxMinor:
+          type: integer
+          format: int64
+        arn:
+          type: string
+        preparedAt:
+          type: string
+          format: date-time
+        filedAt:
+          type: string
+          format: date-time
+    PrepareRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - GSTR1
+            - GSTR3B
+        period:
+          type: string
+          minLength: 1
+      required:
+        - period
+    ReturnLineView:
+      type: object
+      properties:
+        invoiceNumber:
+          type: string
+        buyerGstin:
+          type: string
+        placeOfSupply:
+          type: string
+        supplyType:
+          type: string
+        taxableMinor:
+          type: integer
+          format: int64
+        cgstMinor:
+          type: integer
+          format: int64
+        sgstMinor:
+          type: integer
+          format: int64
+        igstMinor:
+          type: integer
+          format: int64
+    ReturnView:
+      type: object
+      properties:
+        ret:
+          $ref: '#/components/schemas/ReturnSummary'
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReturnLineView'
+    NoteView:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        originalInvoiceId:
+          type: string
+        reason:
+          type: string
+        taxableMinor:
+          type: integer
+          format: int64
+        totalMinor:
+          type: integer
+          format: int64
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+        issuedAt:
+          type: string
+          format: date-time
+    CreateInvoiceRequest:
+      type: object
+      properties:
+        supplierGstin:
+          type: string
+          minLength: 1
+        buyerGstin:
+          type: string
+        placeOfSupply:
+          type: string
+          minLength: 1
+        currency:
+          type: string
+          minLength: 1
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/LineDto'
+          minItems: 1
+      required:
+        - currency
+        - lines
+        - placeOfSupply
+        - supplierGstin
+    InvoiceView:
+      type: object
+      properties:
+        id:
+          type: string
+        invoiceNumber:
+          type: string
+        supplyType:
+          type: string
+        status:
+          type: string
+        taxableMinor:
+          type: integer
+          format: int64
+        cgstMinor:
+          type: integer
+          format: int64
+        sgstMinor:
+          type: integer
+          format: int64
+        igstMinor:
+          type: integer
+          format: int64
+        totalGstMinor:
+          type: integer
+          format: int64
+        totalMinor:
+          type: integer
+          format: int64
+        ledgerEntryId:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/LineView'
+    LineView:
+      type: object
+      properties:
+        description:
+          type: string
+        hsnSac:
+          type: string
+        taxableMinor:
+          type: integer
+          format: int64
+        cgstMinor:
+          type: integer
+          format: int64
+        sgstMinor:
+          type: integer
+          format: int64
+        igstMinor:
+          type: integer
+          format: int64
+        lineTotalMinor:
+          type: integer
+          format: int64
+    IrnView:
+      type: object
+      properties:
+        invoiceId:
+          type: string
+        invoiceNumber:
+          type: string
+        irnStatus:
+          type: string
+        irn:
+          type: string
+        ackNo:
+          type: string
+        ackDate:
+          type: string
+          format: date-time
+        signedQrCode:
+          type: string
+        generatedAt:
+          type: string
+          format: date-time
+        cancelledAt:
+          type: string
+          format: date-time
+        cancelReason:
+          type: string
+    CancelRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          minLength: 1
+      required:
+        - reason
+    NoteRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          minLength: 1
+        taxableMinor:
+          type: integer
+          format: int64
+        cgstMinor:
+          type: integer
+          format: int64
+        sgstMinor:
+          type: integer
+          format: int64
+        igstMinor:
+          type: integer
+          format: int64
+      required:
+        - reason
+    RegisterGstinRequest:
+      type: object
+      properties:
+        gstin:
+          type: string
+          minLength: 1
+        legalName:
+          type: string
+          minLength: 1
+        stateCode:
+          type: string
+          minLength: 1
+        isDefault:
+          type: boolean
+      required:
+        - gstin
+        - legalName
+        - stateCode
+    GstinView:
+      type: object
+      properties:
+        id:
+          type: string
+        gstin:
+          type: string
+        legalName:
+          type: string
+        stateCode:
+          type: string
+        isDefault:
+          type: boolean
+    OffsetRequest:
+      type: object
+      properties:
+        gramsToOffset:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        pricePerTonneMinor:
+          type: integer
+          format: int64
+      required:
+        - currency
+        - gramsToOffset
+        - pricePerTonneMinor
+    OffsetView:
+      type: object
+      properties:
+        id:
+          type: string
+        gramsCo2Offset:
+          type: integer
+          format: int64
+        costMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        ledgerEntryId:
+          type: string
+        note:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    FootprintRequest:
+      type: object
+      properties:
+        transactionRef:
+          type: string
+          minLength: 1
+        method:
+          type: string
+          enum:
+            - UPI
+            - CARD
+            - NET_BANKING
+            - WALLET
+        amountMinor:
+          type: integer
+          format: int64
+      required:
+        - amountMinor
+        - method
+        - transactionRef
+    RecordView:
+      type: object
+      properties:
+        id:
+          type: string
+        transactionRef:
+          type: string
+        method:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        gramsCo2:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+    HoldRequest:
+      type: object
+      properties:
+        buyerRef:
+          type: string
+          minLength: 1
+        sellerRef:
+          type: string
+          minLength: 1
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        description:
+          type: string
+      required:
+        - amountMinor
+        - buyerRef
+        - currency
+        - sellerRef
+    AgreementSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        buyerRef:
+          type: string
+        sellerRef:
+          type: string
+        currency:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        releasedMinor:
+          type: integer
+          format: int64
+        refundedMinor:
+          type: integer
+          format: int64
+        remainingMinor:
+          type: integer
+          format: int64
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+    AgreementView:
+      type: object
+      properties:
+        escrow:
+          $ref: '#/components/schemas/AgreementSummary'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventView'
+    EventView:
+      type: object
+      properties:
+        type:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        ledgerEntryId:
+          type: string
+        note:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    MovementRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        note:
+          type: string
+      required:
+        - amountMinor
+    ClassifyRequest:
+      type: object
+      properties:
+        failureCode:
+          type: string
+          minLength: 1
+      required:
+        - failureCode
+    AttemptView:
+      type: object
+      properties:
+        id:
+          type: string
+        subscriptionId:
+          type: string
+        attemptNumber:
+          type: integer
+          format: int32
+        scheduledAt:
+          type: string
+          format: date-time
+        attemptedAt:
+          type: string
+          format: date-time
+        result:
+          type: string
+        failureReason:
+          type: string
+        failureCategory:
+          type: string
+        recommendedDelayHours:
+          type: integer
+          format: int32
+        recommendedChannels:
+          type: string
+        classificationRationale:
+          type: string
+    CreateRuleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        failureCodePattern:
+          type: string
+        retryIntervalHours:
+          type: integer
+          format: int32
+          minimum: 1
+        maxAttempts:
+          type: integer
+          format: int32
+          minimum: 1
+        notifyChannels:
+          type: string
+      required:
+        - name
+    RuleView:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        failureCodePattern:
+          type: string
+        retryIntervalHours:
+          type: integer
+          format: int32
+        maxAttempts:
+          type: integer
+          format: int32
+        notifyChannels:
+          type: string
+        active:
+          type: boolean
+    ClassificationView:
+      type: object
+      properties:
+        category:
+          type: string
+        retryable:
+          type: boolean
+        recommendedDelayHours:
+          type: integer
+          format: int32
+        recommendedChannels:
+          type: string
+        rationale:
+          type: string
+    CreateExportInvoiceRequest:
+      type: object
+      properties:
+        invoiceNumber:
+          type: string
+          minLength: 1
+        buyerCountry:
+          type: string
+          minLength: 1
+        currency:
+          type: string
+          minLength: 1
+        foreignAmountMinor:
+          type: integer
+          format: int64
+        purposeCode:
+          type: string
+          minLength: 1
+        lut:
+          type: boolean
+      required:
+        - buyerCountry
+        - currency
+        - foreignAmountMinor
+        - invoiceNumber
+        - purposeCode
+    InvoiceSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        invoiceNumber:
+          type: string
+        buyerCountry:
+          type: string
+        currency:
+          type: string
+        foreignAmountMinor:
+          type: integer
+          format: int64
+        purposeCode:
+          type: string
+        lut:
+          type: boolean
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    RemittanceView:
+      type: object
+      properties:
+        id:
+          type: string
+        foreignAmountMinor:
+          type: integer
+          format: int64
+        foreignCurrency:
+          type: string
+        fxRate:
+          type: number
+        inrAmountMinor:
+          type: integer
+          format: int64
+        firaReference:
+          type: string
+        purposeCode:
+          type: string
+        ledgerEntryId:
+          type: string
+        remittedAt:
+          type: string
+          format: date-time
+    RemittanceRequest:
+      type: object
+      properties:
+        foreignAmountMinor:
+          type: integer
+          format: int64
+        firaReference:
+          type: string
+          minLength: 1
+      required:
+        - firaReference
+        - foreignAmountMinor
+    PayResult:
+      type: object
+      properties:
+        code:
+          type: string
+        status:
+          type: string
+        paid:
+          type: boolean
+    IssueRequest:
+      type: object
+      properties:
+        holderRef:
+          type: string
+          minLength: 1
+        type:
+          type: string
+          enum:
+            - EXPENSE
+            - WALLET
+        currency:
+          type: string
+          minLength: 1
+      required:
+        - currency
+        - holderRef
+        - type
+    CardSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        holderRef:
+          type: string
+        type:
+          type: string
+        maskedPan:
+          type: string
+        currency:
+          type: string
+        balanceMinor:
+          type: integer
+          format: int64
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+    CardView:
+      type: object
+      properties:
+        card:
+          $ref: '#/components/schemas/CardSummary'
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionView'
+    TransactionView:
+      type: object
+      properties:
+        type:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        ledgerEntryId:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    SpendRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        description:
+          type: string
+      required:
+        - amountMinor
+    AmountRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+      required:
+        - amountMinor
+    CreateAgreementRequest:
+      type: object
+      properties:
+        customerRef:
+          type: string
+          minLength: 1
+        orderRef:
+          type: string
+          minLength: 1
+        orderAmountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        installments:
+          type: integer
+          format: int32
+        interestBps:
+          type: integer
+          format: int32
+        firstDueDate:
+          type: string
+          format: date
+      required:
+        - currency
+        - customerRef
+        - firstDueDate
+        - installments
+        - interestBps
+        - orderAmountMinor
+        - orderRef
+    UsageRequest:
+      type: object
+      properties:
+        subscriptionId:
+          type: string
+          format: uuid
+        metricKey:
+          type: string
+          minLength: 1
+        quantity:
+          type: integer
+          format: int64
+      required:
+        - metricKey
+        - subscriptionId
+    DeliveryView:
+      type: object
+      properties:
+        id:
+          type: string
+        eventType:
+          type: string
+        status:
+          type: string
+        attemptCount:
+          type: integer
+          format: int32
+        lastResponseCode:
+          type: integer
+          format: int32
+        lastError:
+          type: string
+        deliveredAt:
+          type: string
+          format: date-time
+    AccountWithCreditsView:
+      type: object
+      properties:
+        account:
+          $ref: '#/components/schemas/AccountView'
+        credits:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreditView'
+    SummaryView:
+      type: object
+      properties:
+        quarter:
+          type: string
+        count:
+          type: integer
+          format: int32
+        totalGrossMinor:
+          type: integer
+          format: int64
+        totalTaxMinor:
+          type: integer
+          format: int64
+        taxBySection:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+    DiscrepancyView:
+      type: object
+      properties:
+        type:
+          type: string
+        paymentId:
+          type: string
+        providerPaymentId:
+          type: string
+        expectedMinor:
+          type: integer
+          format: int64
+        reportedMinor:
+          type: integer
+          format: int64
+        detail:
+          type: string
+    ReconciliationView:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        matchedCount:
+          type: integer
+          format: int32
+        discrepancyCount:
+          type: integer
+          format: int32
+        discrepancies:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiscrepancyView'
+    SettlementView:
+      type: object
+      properties:
+        id:
+          type: string
+        provider:
+          type: string
+        providerSettlementId:
+          type: string
+        currency:
+          type: string
+        grossAmountMinor:
+          type: integer
+          format: int64
+        feeAmountMinor:
+          type: integer
+          format: int64
+        taxAmountMinor:
+          type: integer
+          format: int64
+        netAmountMinor:
+          type: integer
+          format: int64
+        itemCount:
+          type: integer
+          format: int32
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+        reconciliation:
+          $ref: '#/components/schemas/ReconciliationView'
+    PayoutBatchSummaryView:
+      type: object
+      properties:
+        id:
+          type: string
+        currency:
+          type: string
+        status:
+          type: string
+        totalCount:
+          type: integer
+          format: int32
+        totalAmountMinor:
+          type: integer
+          format: int64
+        paidCount:
+          type: integer
+          format: int32
+        failedCount:
+          type: integer
+          format: int32
+        description:
+          type: string
+    RefundView:
+      type: object
+      properties:
+        id:
+          type: string
+        paymentId:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+    MerchantView:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+    MeResponse:
+      type: object
+      properties:
+        merchantId:
+          type: string
+        subject:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        authenticated:
+          type: boolean
+    MandateDebitView:
+      type: object
+      properties:
+        id:
+          type: string
+        mandateId:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+    BalanceView:
+      type: object
+      properties:
+        accountId:
+          type: string
+        balanceMinor:
+          type: integer
+          format: int64
+    EligibleItcSummary:
+      type: object
+      properties:
+        eligibleInvoiceCount:
+          type: integer
+          format: int32
+        eligibleItcMinor:
+          type: integer
+          format: int64
+    FootprintSummary:
+      type: object
+      properties:
+        recordCount:
+          type: integer
+          format: int64
+        totalGramsCo2:
+          type: integer
+          format: int64
+        totalGramsOffset:
+          type: integer
+          format: int64
+        netGramsCo2:
+          type: integer
+          format: int64
+    PublicView:
+      type: object
+      properties:
+        code:
+          type: string
+        title:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        status:
+          type: string
+        merchantName:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    UsageSummary:
+      type: object
+      properties:
+        subscriptionId:
+          type: string
+        metricKey:
+          type: string
+        totalQuantity:
+          type: integer
+          format: int64
+        from:
+          type: string
+        to:
+          type: string
+    TpvBucket:
+      type: object
+      properties:
+        period:
+          type: string
+          format: date-time
+        totalMinor:
+          type: integer
+          format: int64
+        txCount:
+          type: integer
+          format: int64
+    SuccessRate:
+      type: object
+      properties:
+        captured:
+          type: integer
+          format: int64
+        failed:
+          type: integer
+          format: int64
+        ratePercent:
+          type: number
+          format: double
+    MrrWaterfallRow:
+      type: object
+      properties:
+        period:
+          type: string
+          format: date-time
+        newMrr:
+          type: integer
+          format: int64
+        expansion:
+          type: integer
+          format: int64
+        contraction:
+          type: integer
+          format: int64
+        churn:
+          type: integer
+          format: int64
+        reactivation:
+          type: integer
+          format: int64
+        netChange:
+          type: integer
+          format: int64
+    CashFlowForecast:
+      type: object
+      properties:
+        startingBalanceMinor:
+          type: integer
+          format: int64
+        avgDailyNetMinor:
+          type: integer
+          format: int64
+        horizonDays:
+          type: integer
+          format: int32
+        projectedEndBalanceMinor:
+          type: integer
+          format: int64
+        recommendation:
+          type: string
+        points:
+          type: array
+          items:
+            $ref: '#/components/schemas/ForecastPoint'
+    ForecastPoint:
+      type: object
+      properties:
+        day:
+          type: integer
+          format: int32
+        date:
+          type: string
+          format: date
+        projectedBalanceMinor:
+          type: integer
+          format: int64
+    ArrView:
+      type: object
+      properties:
+        mrrMinor:
+          type: integer
+          format: int64
+        arrMinor:
+          type: integer
+          format: int64
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      description: Programmatic API key (`qp_live_…` / `qp_test_…`) presented as the `X-Api-Key` header.
+      name: X-Api-Key
+      in: header
+x-tagGroups:
+  - name: Payments
+    tags:
+      - Payments
+      - Payment Links
+      - Checkout
+      - Orchestration
+  - name: Payouts & Money
+    tags:
+      - Payouts
+      - Ledger
+      - Reconciliation
+      - Revenue Recognition
+  - name: Billing
+    tags:
+      - Billing
+      - Mandates
+      - Dunning
+  - name: GST & Tax
+    tags:
+      - GST Invoicing
+      - E-Invoicing (IRN)
+      - GST Returns
+      - Input Tax Credit
+      - TDS / TCS
+  - name: Embedded Finance
+    tags:
+      - Lending
+      - BNPL
+      - Cards
+      - Insurance
+      - Escrow
+  - name: Collections & Growth
+    tags:
+      - Virtual Accounts
+      - Cross-Border
+      - Marketplace
+      - Messaging
+      - ESG / Carbon
+  - name: Platform
+    tags:
+      - Analytics
+      - KYB
+      - Webhooks
+      - Merchants
+      - Platform

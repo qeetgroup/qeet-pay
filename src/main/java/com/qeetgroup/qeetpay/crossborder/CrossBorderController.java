@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.crossborder;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -22,6 +23,9 @@ import org.springframework.web.bind.annotation.RestController;
  * Cross-border API (PRD Module 14): raise a foreign-currency export invoice and record the foreign
  * inward remittance (FX-converted to INR, with the FIRA reference), then read invoices + remittances.
  */
+@Tag(
+        name = "Cross-Border",
+        description = "Foreign-currency export invoices and FX-converted inward remittances (FIRA), with LUT/FEMA purpose codes.")
 @RestController
 @RequestMapping("/v1/crossborder/export-invoices")
 public class CrossBorderController {

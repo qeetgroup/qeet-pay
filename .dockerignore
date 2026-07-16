@@ -1,11 +1,38 @@
-# Backend image needs only the Gradle build + Java sources.
+# Build context for the BACKEND image (root Dockerfile). That build only needs
+# settings.gradle.kts, build.gradle.kts, gradle.properties and src/ — exclude
+# everything else so the context stays small and cache-friendly.
+
+# VCS + CI + tooling
 .git
+.gitignore
+.github
+
+# Gradle outputs / caches (rebuilt inside the build stage)
 .gradle
 build
 **/build
 
-# Local + docs
+# Node / the operator console (built separately by apps/console/Dockerfile)
+apps
+node_modules
+**/node_modules
+
+# Other components not part of the backend jar
+cli
+fraud-svc
+deploy
+
+# Compose + Docker + docs
+docker-compose*.yml
+Dockerfile
+.dockerignore
+*.md
+
+# Local env (dev secrets must never enter the image); keep the example only
 .env
 .env.*
-*.md
-docker-compose.yml
+!.env.example
+
+# OS / logs
+.DS_Store
+*.log

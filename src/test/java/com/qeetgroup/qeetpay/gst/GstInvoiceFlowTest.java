@@ -84,6 +84,29 @@ class GstInvoiceFlowTest {
         assertThat(ledger.balanceMinor(merchantId, account(merchantId, "tax_payable"))).isEqualTo(18_000);
     }
 
+    @Test
+    void listReturnsOnlyTheMerchantsOwnInvoices() {
+        UUID merchantA = newMerchant();
+        UUID merchantB = newMerchant();
+
+        GstInvoice a1 =
+                gst.createInvoice(
+                                merchantA, "27ABCDE1234F1Z5", null, "27", "INR",
+                                List.of(new GstLineInput("Svc", "998314", 1, 100_000, 18)))
+                        .invoice();
+        gst.createInvoice(
+                        merchantB, "27ABCDE1234F1Z5", null, "27", "INR",
+                        List.of(new GstLineInput("Other", "998314", 1, 50_000, 18)))
+                .invoice();
+
+        List<GstInvoice> listA = gst.list(merchantA);
+        assertThat(listA).hasSize(1);
+        assertThat(listA.get(0).getId()).isEqualTo(a1.getId());
+        assertThat(listA).allMatch(i -> i.getMerchantId().equals(merchantA));
+
+        assertThat(gst.list(merchantB)).hasSize(1);
+    }
+
     private UUID newMerchant() {
         return merchants.create("gst-" + UUID.randomUUID().toString().substring(0, 8), "GST Co")
                 .merchant()

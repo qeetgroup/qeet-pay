@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.analytics;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -11,6 +12,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Analytics read API — TPV, MRR waterfall, ARR, success rate. */
+@Tag(
+        name = "Analytics",
+        description = "Business metrics — TPV, MRR waterfall, ARR, success rate, and settlement cash-flow forecasting.")
 @RestController
 @RequestMapping("/v1/analytics")
 public class AnalyticsController {

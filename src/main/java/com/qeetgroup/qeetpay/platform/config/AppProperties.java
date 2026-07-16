@@ -11,6 +11,7 @@ public class AppProperties {
     private Cors cors = new Cors();
     private Nats nats = new Nats();
     private Fraud fraud = new Fraud();
+    private RateLimit rateLimit = new RateLimit();
 
     public Oidc getOidc() {
         return oidc;
@@ -42,6 +43,14 @@ public class AppProperties {
 
     public void setFraud(Fraud fraud) {
         this.fraud = fraud;
+    }
+
+    public RateLimit getRateLimit() {
+        return rateLimit;
+    }
+
+    public void setRateLimit(RateLimit rateLimit) {
+        this.rateLimit = rateLimit;
     }
 
     /** Qeet ID OIDC relying-party contract (TAD §2.2). */
@@ -97,6 +106,43 @@ public class AppProperties {
 
         public void setUrl(String url) {
             this.url = url;
+        }
+    }
+
+    /**
+     * Per-caller rate limiting on {@code /v1/**} (TAD §11). An in-memory token bucket keyed by
+     * merchant / API key; no Redis dependency. <b>Disabled by default</b> so dev/test never throttle;
+     * the {@code prod}/{@code staging} profiles turn it on. {@code capacity} is the burst size and
+     * {@code refillPerSecond} the sustained rate; a tripped bucket returns RFC-7807 429 with a
+     * {@code Retry-After} header.
+     */
+    public static class RateLimit {
+        private boolean enabled = false;
+        private int capacity = 120;
+        private double refillPerSecond = 50;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getCapacity() {
+            return capacity;
+        }
+
+        public void setCapacity(int capacity) {
+            this.capacity = capacity;
+        }
+
+        public double getRefillPerSecond() {
+            return refillPerSecond;
+        }
+
+        public void setRefillPerSecond(double refillPerSecond) {
+            this.refillPerSecond = refillPerSecond;
         }
     }
 

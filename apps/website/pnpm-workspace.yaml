@@ -1,0 +1,10 @@
+# Standalone pnpm project (single package, like the sibling apps/checkout &
+# apps/console). Explicitly decline sharp's optional native build: this
+# marketing site serves its raster images via @qeetrix/ui's <Avatar> (a plain
+# <img>) and static PNG/SVG icons — it never invokes Next.js's on-the-fly image
+# optimizer (next.config sets `images.unoptimized`), so sharp isn't needed and
+# the built-in fallback is fine. Recording the decision here settles pnpm's
+# build-approval prompt so `pnpm install`, `pnpm build`, and `pnpm typecheck`
+# all succeed non-interactively.
+allowBuilds:
+  sharp: false

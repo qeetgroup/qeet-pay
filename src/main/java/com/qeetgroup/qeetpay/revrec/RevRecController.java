@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.revrec;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -22,6 +23,9 @@ import org.springframework.web.bind.annotation.RestController;
  * Revenue-recognition API (TAD §5 "RevRec"): create a schedule (defers revenue), recognise due
  * periods, and read schedules with their per-period slices.
  */
+@Tag(
+        name = "Revenue Recognition",
+        description = "IndAS 115 revenue schedules — defer revenue, recognise due periods, and read schedules with their slices.")
 @RestController
 @RequestMapping("/v1/revrec/schedules")
 public class RevRecController {

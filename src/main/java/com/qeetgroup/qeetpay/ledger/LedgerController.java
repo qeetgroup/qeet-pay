@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyRecord;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyService;
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -28,6 +29,9 @@ import org.springframework.web.bind.annotation.RestController;
  * (idempotent), and read an account balance. The active merchant comes from {@link MerchantContext}
  * (set by the API-key or JWT auth, or the dev {@code X-Merchant-Id} header).
  */
+@Tag(
+        name = "Ledger",
+        description = "Double-entry ledger — list accounts, post a balanced journal entry (idempotent), and read account balances.")
 @RestController
 @RequestMapping("/v1/ledger")
 public class LedgerController {

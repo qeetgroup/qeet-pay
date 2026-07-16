@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.virtualaccounts;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -21,6 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
  * Virtual-accounts API (PRD Module 01): mint a per-customer virtual account, read accounts + their
  * credits, ingest an inbound credit (auto-reconciled), and close an account.
  */
+@Tag(
+        name = "Virtual Accounts",
+        description = "Mint per-customer virtual accounts, ingest auto-reconciled inbound credits, and read accounts with their credits.")
 @RestController
 @RequestMapping("/v1/virtual-accounts")
 public class VirtualAccountController {

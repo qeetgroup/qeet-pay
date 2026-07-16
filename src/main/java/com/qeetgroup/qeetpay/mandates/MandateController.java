@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyRecord;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyService;
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -28,6 +29,9 @@ import org.springframework.web.bind.annotation.RestController;
  * Mandate management REST API (TAD Module 02). Lifecycle: create → activate → (pause/resume) →
  * revoke. debit() posts a charge and is idempotent via {@code Idempotency-Key}.
  */
+@Tag(
+        name = "Mandates",
+        description = "Recurring-mandate lifecycle (create → activate → pause/resume → revoke) and idempotent mandate debits.")
 @RestController
 @RequestMapping("/v1/mandates")
 public class MandateController {

@@ -1,5 +1,6 @@
 package com.qeetgroup.qeetpay.payments;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
 import javax.crypto.Mac;
@@ -20,6 +21,9 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>Phase 1: logs events and returns 200 OK. Full capture-on-webhook is wired in M05 (webhook
  * engine) once the merchant lookup from order notes is in place.
  */
+@Tag(
+        name = "Payments",
+        description = "Inbound Razorpay webhook receiver — authenticity verified via HMAC-SHA256 on the raw body.")
 @RestController
 @RequestMapping("/v1/payments/razorpay")
 public class RazorpayWebhookController {

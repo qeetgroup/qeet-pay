@@ -149,6 +149,13 @@ public class GstInvoiceService {
         return new InvoiceWithLines(invoice, lines.findByInvoiceId(invoiceId));
     }
 
+    /** The merchant's invoice headers, newest-issued first (lines omitted — read them via getInvoice). */
+    @Transactional(readOnly = true)
+    public List<GstInvoice> list(UUID merchantId) {
+        merchantScope.apply(merchantId);
+        return invoices.findByMerchantIdOrderByIssuedAtDesc(merchantId);
+    }
+
     /**
      * Invoices issued in the half-open window {@code [from, to)} — the tax-period slice the
      * {@code filing} module aggregates into a GSTR return. Read-only; never mutates.

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyRecord;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyService;
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -28,6 +29,9 @@ import org.springframework.web.bind.annotation.RestController;
  * (replay via {@code Idempotency-Key}) and posts the ledger entry. The active merchant comes from
  * {@link MerchantContext} (API-key / JWT auth, or the dev {@code X-Merchant-Id} header).
  */
+@Tag(
+        name = "Payments",
+        description = "Accept payments — create authorizes, capture posts the ledger entry (idempotent), read and list.")
 @RestController
 @RequestMapping("/v1/payments")
 public class PaymentController {
@@ -106,6 +110,11 @@ public class PaymentController {
                     merchantId, idempotencyKey, HttpStatus.CREATED.value(), objectMapper.writeValueAsString(view));
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(view);
+    }
+
+    @GetMapping
+    public List<PaymentView> list() {
+        return payments.list(MerchantContext.require()).stream().map(PaymentView::of).toList();
     }
 
     @GetMapping("/{id}/refunds")

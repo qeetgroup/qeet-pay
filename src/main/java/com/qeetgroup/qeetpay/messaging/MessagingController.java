@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.messaging;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -22,6 +23,9 @@ import org.springframework.web.bind.annotation.RestController;
  * Messaging API (PRD Module 09): configure WhatsApp/SMS/email templates and dispatch rendered
  * messages (queued to qeet-notify via the outbox); delivery callbacks mark a dispatch SENT/FAILED.
  */
+@Tag(
+        name = "Messaging",
+        description = "WhatsApp/SMS/email templates and rendered dispatch (queued to qeet-notify via the outbox); delivery callbacks.")
 @RestController
 @RequestMapping("/v1/messaging")
 public class MessagingController {

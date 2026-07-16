@@ -61,6 +61,31 @@ class BillingFlowTest {
         assertThat(ledger.balanceMinor(merchantId, account(merchantId, "revenue"))).isEqualTo(100000);
     }
 
+    @Test
+    void listsReturnOnlyTheMerchantsOwnRowsAndAreMerchantScoped() {
+        UUID merchantA = newMerchant();
+        UUID merchantB = newMerchant();
+
+        Plan planA = billing.createPlan(merchantA, "a", "A", 100000, "INR", BillingInterval.MONTH);
+        billing.createSubscription(merchantA, planA.getId(), "cust_a"); // + first invoice for A
+
+        Plan planB = billing.createPlan(merchantB, "b", "B", 200000, "INR", BillingInterval.MONTH);
+        billing.createSubscription(merchantB, planB.getId(), "cust_b"); // + first invoice for B
+
+        assertThat(billing.listPlans(merchantA)).hasSize(1);
+        assertThat(billing.listPlans(merchantA).get(0).getId()).isEqualTo(planA.getId());
+        assertThat(billing.listSubscriptions(merchantA)).hasSize(1);
+        assertThat(billing.listSubscriptions(merchantA).get(0).getMerchantId()).isEqualTo(merchantA);
+        assertThat(billing.listInvoices(merchantA)).hasSize(1);
+        assertThat(billing.listInvoices(merchantA).get(0).getMerchantId()).isEqualTo(merchantA);
+
+        // merchant B sees only its own row in each list.
+        assertThat(billing.listPlans(merchantB)).hasSize(1);
+        assertThat(billing.listPlans(merchantB).get(0).getId()).isEqualTo(planB.getId());
+        assertThat(billing.listSubscriptions(merchantB)).hasSize(1);
+        assertThat(billing.listInvoices(merchantB)).hasSize(1);
+    }
+
     private UUID newMerchant() {
         return merchants.create("bill-" + UUID.randomUUID().toString().substring(0, 8), "Bill Co")
                 .merchant()

@@ -1,0 +1,124 @@
+# ==============================================================================
+# Qeet Pay — PRODUCTION compose overlay.
+#
+# Layers on top of the base stack and flips it to a production posture:
+#   - `prod` Spring profile (auth REQUIRED + ECS-JSON structured logs)
+#   - all secrets / hostnames injected via environment (never committed)
+#   - restart policies, resource limits, and log rotation
+#   - the app connects as the NOSUPERUSER `qeet_pay_app` role so RLS is enforced
+#
+# Usage (env supplied by the shell, a .env file, or your secret manager):
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.prod.yml up -d
+#
+# The ${VAR:-default} placeholders keep `docker compose config` valid out of the
+# box; the *_REPLACE_ME defaults are intentionally invalid so a real deployment
+# has to override them. For managed infra, point DATABASE_URL at your RDS/Cloud
+# SQL instance and drop the bundled `postgres` service (`--scale postgres=0`).
+# ==============================================================================
+
+services:
+  # --- Postgres ---------------------------------------------------------------
+  # Prefer a MANAGED Postgres (RDS / Cloud SQL / Neon) in real prod. If you keep
+  # this service, run migrations/bootstrap as the owner role, then have the app
+  # connect as the NOSUPERUSER `qeet_pay_app` role (Flyway V2) so RLS is enforced
+  # — a superuser/table-owner silently bypasses every RLS policy (CLAUDE.md).
+  postgres:
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_SUPERUSER:-qeet_pay}
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:-postgres_REPLACE_ME}
+      POSTGRES_DB: ${POSTGRES_DB:-qeet_pay}
+    # Do NOT publish the DB port publicly in prod; keep it on the internal network.
+    ports: !reset []
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2g
+        reservations:
+          cpus: "0.5"
+          memory: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # --- Backend API ------------------------------------------------------------
+  backend:
+    restart: unless-stopped
+    # In prod the browser talks to the console; there is usually no reason to
+    # publish 4201 directly — an ingress/LB terminates TLS. Keep it internal.
+    ports: !reset []
+    expose:
+      - "4201"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: "4201"
+      # RLS-enforcing least-privilege role — NOT the superuser used in dev.
+      DATABASE_URL: ${DATABASE_URL:-jdbc:postgresql://postgres:5432/qeet_pay}
+      DATABASE_USER: ${DATABASE_USER:-qeet_pay_app}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-app_REPLACE_ME}
+      # Qeet ID OIDC relying-party (prod chain validates JWTs — TAD §2.2).
+      QEETID_ISSUER_URI: ${QEETID_ISSUER_URI:-https://api.id.qeet.in}
+      QEETID_JWKS_URI: ${QEETID_JWKS_URI:-https://api.id.qeet.in/.well-known/jwks.json}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://pay.qeet.in}
+      # Eventing / fraud — enable + point at real backends in prod.
+      QEETPAY_NATS_ENABLED: ${QEETPAY_NATS_ENABLED:-false}
+      NATS_URL: ${NATS_URL:-nats://nats:4222}
+      QEETPAY_FRAUD_ENABLED: ${QEETPAY_FRAUD_ENABLED:-false}
+      FRAUD_SVC_URL: ${FRAUD_SVC_URL:-http://fraud-svc:8201}
+      # Razorpay live keys (only read when QEETPAY_RAZORPAY_ENABLED=true).
+      QEETPAY_RAZORPAY_ENABLED: ${QEETPAY_RAZORPAY_ENABLED:-false}
+      QEETPAY_RAZORPAY_KEY_ID: ${QEETPAY_RAZORPAY_KEY_ID:-}
+      QEETPAY_RAZORPAY_KEY_SECRET: ${QEETPAY_RAZORPAY_KEY_SECRET:-}
+      QEETPAY_RAZORPAY_WEBHOOK_SECRET: ${QEETPAY_RAZORPAY_WEBHOOK_SECRET:-}
+      JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError}
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1536m
+        reservations:
+          cpus: "0.5"
+          memory: 768m
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  # --- Operator console -------------------------------------------------------
+  # VITE_API_URL is baked at BUILD time, so set it as a build arg (not runtime env)
+  # to the PUBLIC backend URL the browser will call.
+  console:
+    restart: unless-stopped
+    build:
+      args:
+        VITE_API_URL: ${VITE_API_URL:-https://api.pay.qeet.in}
+    ports: !reset []
+    expose:
+      - "3201"
+    environment:
+      NODE_ENV: production
+      PORT: "3201"
+      HOST: 0.0.0.0
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512m
+        reservations:
+          cpus: "0.25"
+          memory: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # NATS + Redis inherit the base definitions; add restart policies here.
+  nats:
+    restart: unless-stopped
+  redis:
+    restart: unless-stopped

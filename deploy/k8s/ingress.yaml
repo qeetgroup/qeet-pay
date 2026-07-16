@@ -1,0 +1,46 @@
+# Public entrypoints. Host-based split:
+#   pay.qeet.in      -> console (operator dashboard)
+#   api.pay.qeet.in  -> backend  (REST API / webhooks)
+#
+# Assumes an ingress-nginx controller + cert-manager for TLS. Adjust the
+# ingressClassName / annotations for your controller (Traefik, GKE, ALB, …).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: qeet-pay
+  namespace: qeet-pay
+  labels:
+    app.kubernetes.io/part-of: qeet-pay
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # Payment payloads/webhooks are small, but leave headroom over the 1m default.
+    nginx.ingress.kubernetes.io/proxy-body-size: "8m"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - pay.qeet.in
+        - api.pay.qeet.in
+      secretName: qeet-pay-tls # populated by cert-manager
+  rules:
+    - host: pay.qeet.in
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: qeet-pay-console
+                port:
+                  number: 3201
+    - host: api.pay.qeet.in
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: qeet-pay-backend
+                port:
+                  number: 4201

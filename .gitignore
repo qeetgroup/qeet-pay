@@ -13,3 +13,5 @@ build/
 .idea
 *.iml
 .vscode
+
+node_modules

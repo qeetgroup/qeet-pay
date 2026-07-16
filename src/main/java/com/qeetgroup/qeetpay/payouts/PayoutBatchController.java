@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyRecord;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyService;
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -30,6 +31,9 @@ import org.springframework.web.bind.annotation.RestController;
  * PENDING_APPROVAL); approve is the maker-checker step that disburses the whole batch (idempotent);
  * reject closes it. The active merchant comes from {@link MerchantContext}.
  */
+@Tag(
+        name = "Payouts",
+        description = "Bulk payout batches from a JSON array or CSV upload, disbursed under maker-checker approval.")
 @RestController
 @RequestMapping("/v1/payout-batches")
 public class PayoutBatchController {

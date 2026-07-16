@@ -1,0 +1,71 @@
+{
+  "landing": {
+    "title": "Enter your payment code",
+    "subtitle": "Open the payment link you were sent, or type its code below.",
+    "codeLabel": "Payment code",
+    "codePlaceholder": "e.g. plink_ab12cd34",
+    "submit": "Continue",
+    "hint": "You'll usually arrive here from a link — no code needed."
+  },
+  "securePaymentVia": "Secure payment via Qeet Pay",
+  "summary": {
+    "enterAmount": "Enter an amount",
+    "expiresAt": "Link expires {{date}}"
+  },
+  "fields": {
+    "amount": "Amount (₹)",
+    "amountPlaceholder": "0.00",
+    "name": "Full name",
+    "namePlaceholder": "Your name",
+    "email": "Email",
+    "emailPlaceholder": "you@example.com",
+    "optional": "optional"
+  },
+  "method": {
+    "label": "Payment method",
+    "UPI": "UPI",
+    "CARD": "Card",
+    "NET_BANKING": "Net Banking",
+    "WALLET": "Wallet"
+  },
+  "submit": {
+    "idle": "Pay {{amount}}",
+    "idleOpen": "Pay now",
+    "busy": "Processing…"
+  },
+  "secured": "Payments are encrypted and processed securely by Qeet Pay.",
+  "success": {
+    "title": "Payment successful",
+    "subtitle": "Your payment to {{merchant}} is complete.",
+    "amountLabel": "Amount paid",
+    "methodLabel": "Method",
+    "refLabel": "Reference",
+    "note": "A receipt has been sent by {{merchant}}. You can safely close this page."
+  },
+  "status": {
+    "PAID": {
+      "badge": "Paid",
+      "title": "Already paid",
+      "body": "This payment link has already been paid. There's nothing more to do."
+    },
+    "EXPIRED": {
+      "badge": "Expired",
+      "title": "This link has expired",
+      "body": "This payment link is no longer valid. Please ask {{merchant}} for a new one."
+    },
+    "CANCELLED": {
+      "badge": "Cancelled",
+      "title": "This link was cancelled",
+      "body": "This payment link was cancelled by {{merchant}} and can no longer be used."
+    }
+  },
+  "notFound": {
+    "title": "Link not found",
+    "subtitle": "We couldn't find this payment link.",
+    "body": "The link may be mistyped, expired, or removed. Please check the link you were sent and try again."
+  },
+  "errors": {
+    "invalidAmount": "Please enter a valid amount.",
+    "notCompleted": "The payment couldn't be completed. Please try again."
+  }
+}

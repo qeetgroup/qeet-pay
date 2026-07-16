@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.dunning;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -17,6 +18,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Dunning API (TAD Module 04): configure retry rules; view attempt history. */
+@Tag(
+        name = "Dunning",
+        description = "Configure failed-payment retry rules and view dunning attempt history.")
 @RestController
 @RequestMapping("/v1/dunning")
 public class DunningController {

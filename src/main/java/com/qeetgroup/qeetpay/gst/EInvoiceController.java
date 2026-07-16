@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.gst;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
@@ -16,6 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
  * E-invoicing API (TAD §7.3): register an issued GST invoice at the IRP to obtain its IRN + signed
  * QR, read the IRN details, and cancel the IRN within the regulatory window.
  */
+@Tag(
+        name = "E-Invoicing (IRN)",
+        description = "Register a GST invoice at the IRP to obtain its IRN + signed QR; read IRN details and cancel within the window.")
 @RestController
 @RequestMapping("/v1/gst/invoices/{invoiceId}/irn")
 public class EInvoiceController {

@@ -2,6 +2,7 @@ package com.qeetgroup.qeetpay.platform.tenancy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.qeetgroup.qeetpay.AbstractIntegrationTest;
 import java.sql.Connection;
 import java.util.UUID;
 import javax.sql.DataSource;
@@ -9,13 +10,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.test.context.ActiveProfiles;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 /**
  * Proves the multi-tenant RLS backbone (TAD §6.1): with {@code app.current_merchant_id} set, a
@@ -24,16 +18,11 @@ import org.testcontainers.utility.DockerImageName;
  * <p>RLS is bypassed by superusers, so the checks run under {@code qeet_pay_app} — the NOSUPERUSER,
  * append-only role created by migration V2, i.e. the same least-privilege posture production uses.
  * Seeding runs as the container superuser (RLS bypassed) on purpose.
+ *
+ * <p>Adopts {@link AbstractIntegrationTest} (shared singleton Postgres + cached context).
  */
-@SpringBootTest
-@ActiveProfiles("test")
-@Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class RlsIsolationTest {
-
-    @Container @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>(DockerImageName.parse("postgres:16-alpine"));
+class RlsIsolationTest extends AbstractIntegrationTest {
 
     @Autowired DataSource dataSource;
 

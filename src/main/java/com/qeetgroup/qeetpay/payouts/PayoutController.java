@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyRecord;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyService;
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -26,6 +27,9 @@ import org.springframework.web.bind.annotation.RestController;
  * Payouts API (TAD Module 02). Create stages a payout (PENDING_APPROVAL); approve (idempotent) is
  * the maker-checker step that disburses and posts to the ledger; reject closes it.
  */
+@Tag(
+        name = "Payouts",
+        description = "Create, approve (maker-checker, idempotent) and reject single payouts; approval disburses and posts to the ledger.")
 @RestController
 @RequestMapping("/v1/payouts")
 public class PayoutController {

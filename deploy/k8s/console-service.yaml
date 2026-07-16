@@ -1,0 +1,17 @@
+# Stable in-cluster address for the console. Fronted by the Ingress.
+apiVersion: v1
+kind: Service
+metadata:
+  name: qeet-pay-console
+  namespace: qeet-pay
+  labels:
+    app.kubernetes.io/name: qeet-pay-console
+    app.kubernetes.io/part-of: qeet-pay
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: qeet-pay-console
+  ports:
+    - name: http
+      port: 3201
+      targetPort: http

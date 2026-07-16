@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.marketplace;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -21,6 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
  * Marketplace API (TAD §5 "Marketplace"): register sellers, split a collected payment across them
  * with commission + statutory TCS/TDS, and read/cancel splits.
  */
+@Tag(
+        name = "Marketplace",
+        description = "Register sellers and split a collected payment across them with commission + statutory TCS/TDS; read and cancel splits.")
 @RestController
 @RequestMapping("/v1/marketplace")
 public class MarketplaceController {

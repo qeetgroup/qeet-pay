@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyRecord;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyService;
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -31,6 +32,9 @@ import org.springframework.web.bind.annotation.RestController;
  * returning the settlement with its reconciliation outcome (MATCHED or the flagged discrepancies).
  * Ingestion is idempotent via the provider settlement id, and also honours an {@code Idempotency-Key}.
  */
+@Tag(
+        name = "Reconciliation",
+        description = "Ingest provider settlement reports — post the money movement and auto-reconcile against captured payments.")
 @RestController
 @RequestMapping("/v1/settlements")
 public class SettlementController {
