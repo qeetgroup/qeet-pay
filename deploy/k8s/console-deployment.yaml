@@ -1,0 +1,77 @@
+# Qeet Pay operator console — TanStack Start + Nitro node-server.
+# Image is built from apps/console/Dockerfile. Because VITE_API_URL is inlined at
+# BUILD time, build the image with the correct public backend URL, e.g.:
+#   docker build -t ghcr.io/qeetgroup/qeet-pay-console:<tag> \
+#     --build-arg VITE_API_URL=https://api.pay.qeet.in apps/console
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qeet-pay-console
+  namespace: qeet-pay
+  labels:
+    app.kubernetes.io/name: qeet-pay-console
+    app.kubernetes.io/part-of: qeet-pay
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: qeet-pay-console
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: qeet-pay-console
+        app.kubernetes.io/part-of: qeet-pay
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000 # the `node` user in node:22-alpine
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: console
+          image: ghcr.io/qeetgroup/qeet-pay-console:latest # pin to a digest/tag in prod
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3201
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3201"
+            - name: HOST
+              value: "0.0.0.0"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "192Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]

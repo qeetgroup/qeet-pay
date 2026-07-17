@@ -5,11 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyRecord;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyService;
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -27,6 +29,9 @@ import org.springframework.web.bind.annotation.RestController;
  * Billing API (TAD Module 03): plans, subscriptions, invoices, usage metering.
  * Lifecycle endpoints: upgrade/downgrade/pause/resume/cancel.
  */
+@Tag(
+        name = "Billing",
+        description = "Plans, subscriptions, invoices and usage metering, with lifecycle actions (upgrade/downgrade/pause/resume/cancel).")
 @RestController
 public class BillingController {
 
@@ -48,6 +53,11 @@ public class BillingController {
 
     // ── Plans ────────────────────────────────────────────────────────────────
 
+    @GetMapping("/v1/plans")
+    public List<PlanView> listPlans() {
+        return billing.listPlans(MerchantContext.require()).stream().map(PlanView::of).toList();
+    }
+
     @PostMapping("/v1/plans")
     public ResponseEntity<PlanView> createPlan(@Valid @RequestBody CreatePlanRequest req) {
         UUID merchantId = MerchantContext.require();
@@ -63,6 +73,13 @@ public class BillingController {
     }
 
     // ── Subscriptions ─────────────────────────────────────────────────────────
+
+    @GetMapping("/v1/subscriptions")
+    public List<SubscriptionView> listSubscriptions() {
+        return billing.listSubscriptions(MerchantContext.require()).stream()
+                .map(SubscriptionView::ofSubscription)
+                .toList();
+    }
 
     @PostMapping("/v1/subscriptions")
     public ResponseEntity<SubscriptionView> createSubscription(@Valid @RequestBody CreateSubscriptionRequest req) {
@@ -109,6 +126,11 @@ public class BillingController {
     }
 
     // ── Invoices ──────────────────────────────────────────────────────────────
+
+    @GetMapping("/v1/invoices")
+    public List<InvoiceView> listInvoices() {
+        return billing.listInvoices(MerchantContext.require()).stream().map(InvoiceView::of).toList();
+    }
 
     @PostMapping("/v1/invoices/{id}/pay")
     public ResponseEntity<?> payInvoice(

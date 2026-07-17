@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.platform.api;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -13,6 +14,9 @@ import org.springframework.web.bind.annotation.RestController;
  * {@link MerchantContext} plus the subject/roles from the Qeet ID JWT (null under an API key or in
  * dev). Proves the auth + merchant-context wiring end-to-end.
  */
+@Tag(
+        name = "Platform",
+        description = "Resolved request identity — the current merchant plus the Qeet ID JWT subject/roles (null under an API key).")
 @RestController
 @RequestMapping("/v1")
 public class MeController {

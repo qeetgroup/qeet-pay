@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.kyb;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
@@ -13,6 +14,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** KYB API (TAD Module 06): submit PAN / GSTIN / bank; query overall status. */
+@Tag(
+        name = "KYB",
+        description = "Merchant Know-Your-Business — submit PAN / GSTIN / bank details and query overall verification status.")
 @RestController
 @RequestMapping("/v1/merchants/kyb")
 public class KybController {

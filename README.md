@@ -2,7 +2,7 @@
 
 **Qeet Pay** is the unified payments, billing, and financial infrastructure platform for the Qeet Group and for external multi-tenant SaaS companies, marketplaces, and enterprises. One API, one dashboard, one integration — for payment acceptance, payouts, subscription billing, GST-compliant invoicing, payment orchestration, fraud detection, embedded finance, and financial analytics.
 
-> Status: **PRD — pre-development.** Phase 1 development targets Q3–Q4 2026 alongside 5 design partners.
+> Status: **Phase-1 complete; Phase-2 well underway + operator console shipped.** The modular-monolith skeleton, multi-tenant RLS backbone, and double-entry ledger core are in place; payments, payouts, billing, mandates, dunning, GST, KYB, fraud, webhooks, and analytics modules plus settlements/reconciliation are built. Phase-2 backend now spans 20+ bounded contexts: revenue recognition (IndAS 115), marketplace split settlements (GST/TCS/TDS), GST return filing (GSTR-1/3B), IRN e-invoicing, AI-dunning UPI-failure classification, smart provider orchestration, embedded lending (AA-underwritten working-capital advances), virtual accounts (auto-reconciled B2B collection), cash-flow forecasting, digital escrow, cross-border collection (export invoices + FX + FIRA), WhatsApp-native messaging, payment links, BNPL, virtual cards, embedded insurance, TDS/TCS tracking, ITC/GSTR-2B reconciliation, and per-transaction ESG/carbon. The **operator console** ([`apps/console/`](apps/console/), TanStack Start + `@qeetrix/ui`, port 3201) covers every domain above. SDKs (in `../qeet-sdks/`), CLI, and sandbox remain (see `CLAUDE.md` and the TAD §17 for exact scope).
 
 ---
 
@@ -210,8 +210,10 @@ Own PA license, PA-CB for international, UPI Lite + 123Pay, virtual card issuing
 
 ## Repository structure
 
-Phase 0 ships the foundation only — a single Spring Boot modular monolith (Spring Modulith). Domain
-modules (payments, payouts, billing, invoice/GST, fraud, …) land in Phase 1+ as sibling packages.
+A single Spring Boot modular monolith (Spring Modulith). The foundation (platform/, ledger/,
+merchants/, reconciliation/) and the Phase-1 domain modules (payments, payouts, billing, mandates,
+dunning, gst, kyb, fraud, webhooks, analytics) are built as sibling packages; remaining Phase 2+ scope
+(SDKs/CLI/sandbox, IRN/GSTR filing, AI/ML) lands incrementally — see `CLAUDE.md` for current status.
 
 ```
 qeet-pay/

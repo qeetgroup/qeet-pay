@@ -42,6 +42,20 @@ public class DunningAttempt {
     @Column(name = "failure_reason")
     private String failureReason;
 
+    // ── AI dunning classification (PRD Module 04.1) ──────────────────────────
+
+    @Column(name = "failure_category")
+    private String failureCategory;
+
+    @Column(name = "recommended_delay_hours")
+    private Integer recommendedDelayHours;
+
+    @Column(name = "recommended_channels")
+    private String recommendedChannels;
+
+    @Column(name = "classification_rationale")
+    private String classificationRationale;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
@@ -61,6 +75,17 @@ public class DunningAttempt {
         this.failureReason = failureReason;
     }
 
+    /**
+     * Attaches the classifier's decision. Must be called before the attempt is first persisted
+     * ({@code dunning.attempts} is append-only — SELECT/INSERT only, per V11).
+     */
+    public void applyClassification(RetryRecommendation rec) {
+        this.failureCategory = rec.category().name();
+        this.recommendedDelayHours = rec.recommendedDelayHours();
+        this.recommendedChannels = rec.recommendedChannels();
+        this.classificationRationale = rec.rationale();
+    }
+
     public UUID getId() { return id; }
     public UUID getMerchantId() { return merchantId; }
     public UUID getSubscriptionId() { return subscriptionId; }
@@ -70,4 +95,8 @@ public class DunningAttempt {
     public Instant getAttemptedAt() { return attemptedAt; }
     public String getResult() { return result; }
     public String getFailureReason() { return failureReason; }
+    public String getFailureCategory() { return failureCategory; }
+    public Integer getRecommendedDelayHours() { return recommendedDelayHours; }
+    public String getRecommendedChannels() { return recommendedChannels; }
+    public String getClassificationRationale() { return classificationRationale; }
 }

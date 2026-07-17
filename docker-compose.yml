@@ -1,6 +1,23 @@
-# Local dev infra for qeet-pay (Phase 0). Tests don't use this — they spin their own
-# Postgres via Testcontainers. Ports are the reserved qeet-pay block (id=5001, people=5101).
+# ==============================================================================
+# Qeet Pay — full local dev stack (infra + backend + console).
+#
+# One network, the reserved "pay" port band:
+#   postgres :5201 · nats :4222 (+mon 8222) · redis :6379 · backend :4201 · console :3201
+#
+# Quick start:
+#   docker compose up --build            # build images + run the whole stack
+#   docker compose up -d postgres nats   # just the infra (the old `make db-up`)
+#   docker compose down -v               # stop + wipe the pgdata volume
+#
+# RLS WARNING: this dev stack runs Postgres as the SUPERUSER role `qeet_pay`,
+# which is convenient locally but BYPASSES Row-Level Security. Production MUST
+# connect the app with the NOSUPERUSER `qeet_pay_app` role (created in Flyway V2)
+# for RLS to actually isolate tenants — see deploy/docker-compose.prod.yml and
+# the "Gotchas" section of CLAUDE.md.
+# ==============================================================================
+
 services:
+  # --- Postgres 17 — primary datastore (unchanged dev shape) ------------------
   postgres:
     image: postgres:17-alpine
     environment:
@@ -17,20 +34,86 @@ services:
       timeout: 3s
       retries: 10
 
-  # Transactional-outbox relay target (TAD §9.1). Off by default (QEETPAY_NATS_ENABLED=false).
+  # --- NATS JetStream — transactional-outbox relay target (TAD §9.1) ----------
+  # Off by default in the backend (QEETPAY_NATS_ENABLED=false); wired here so it
+  # can be flipped on without touching this file. -m 8222 exposes /healthz.
   nats:
     image: nats:2.10-alpine
     command: ["-js", "-m", "8222"]
     ports:
       - "4222:4222"
       - "8222:8222"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8222/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
-  # Reserved for Phase 1 (rate limiting / fraud velocity features). Unused in Phase 0.
+  # --- Redis — reserved for Phase-1 rate-limit / fraud-velocity features ------
   redis:
     image: redis:7-alpine
-    command: redis-server --appendonly yes
+    command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # --- Backend API (Spring Boot modular monolith) -----------------------------
+  # Runs the `dev` profile so it boots WITHOUT a live Qeet ID (permissive chain +
+  # X-Merchant-Id header). DATABASE_URL targets the `postgres` service on the
+  # compose network (container port 5432, not the published 5201).
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    environment:
+      SERVER_PORT: "4201"
+      SPRING_PROFILES_ACTIVE: dev
+      DATABASE_URL: jdbc:postgresql://postgres:5432/qeet_pay
+      DATABASE_USER: qeet_pay
+      DATABASE_PASSWORD: qeet_pay
+      ALLOWED_ORIGINS: http://localhost:3201
+      # Eventing + fraud stay off by default (matching .env.example) but are wired.
+      QEETPAY_NATS_ENABLED: "false"
+      NATS_URL: nats://nats:4222
+      QEETPAY_FRAUD_ENABLED: "false"
+      FRAUD_SVC_URL: http://fraud-svc:8201
+    ports:
+      - "4201:4201"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:4201/actuator/health/readiness"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+  # --- Operator console (TanStack Start + Nitro node-server) ------------------
+  # VITE_API_URL is a BUILD arg baked into the browser bundle. The browser runs on
+  # the host, so it must reach the backend via the PUBLISHED host port, not the
+  # internal service name.
+  console:
+    build:
+      context: ./apps/console
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:4201
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3201"
+      HOST: 0.0.0.0
+    ports:
+      - "3201:3201"
 
 volumes:
   pgdata:

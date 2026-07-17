@@ -1,18 +1,80 @@
+# Backend CI — Java 21 + Spring Boot modular monolith (Gradle).
+#
+# Runs on ubuntu-latest specifically because the Linux runner ships a stock,
+# working Docker engine: the build's Testcontainers tests (Postgres 17 + the
+# RLS-isolation test under the NOSUPERUSER role + the Spring Modulith boundary
+# verification) spin real containers here with Ryuk (Testcontainers' resource
+# reaper) ENABLED, which is the correct/default behaviour on Linux.
+#
+# NOTE: the local macOS workaround from CLAUDE.md —
+#   DOCKER_HOST=unix://$HOME/.docker/run/docker.sock \
+#   DOCKER_API_VERSION=1.43 TESTCONTAINERS_RYUK_DISABLED=true ./gradlew test
+# — is a Docker-Desktop-on-macOS-only thing (a docker-java/engine API-version
+# mismatch). CI/Linux needs NONE of it; do not copy those env vars here.
 name: ci
 
 on:
   push:
     branches: [main, develop]
+    paths:
+      - "src/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - "gradle/**"
+      - "gradlew"
+      - "gradlew.bat"
+      - ".github/workflows/ci.yml"
   pull_request:
+    paths:
+      - "src/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - "gradle/**"
+      - "gradlew"
+      - "gradlew.bat"
+      - ".github/workflows/ci.yml"
+
+# Cancel superseded runs on the same branch/PR.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least-privilege GITHUB_TOKEN: this job only reads the repo.
+permissions:
+  contents: read
 
 jobs:
   build-test:
+    name: JDK 21 · Gradle build + test (Testcontainers)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
-      - name: Build + test (Testcontainers spins Postgres; includes Modulith verify + RLS isolation)
-        run: ./gradlew build --no-daemon
+
+      - name: Set up Gradle (with build + dependency caching)
+        uses: gradle/actions/setup-gradle@v4
+
+      # `./gradlew build` runs `check` -> `test` (Modulith verify + RLS isolation
+      # against a real Testcontainers Postgres) and produces the bootJar.
+      - name: Build + test
+        run: ./gradlew build --no-daemon --stacktrace
+
+      - name: Upload test reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: |
+            build/reports/tests/
+            build/test-results/
+          retention-days: 14
+          if-no-files-found: ignore

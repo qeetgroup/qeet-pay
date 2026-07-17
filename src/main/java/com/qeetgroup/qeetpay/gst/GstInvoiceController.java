@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyRecord;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyService;
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -28,6 +29,9 @@ import org.springframework.web.bind.annotation.RestController;
  * GST invoicing API (TAD Module 05). Create computes the GST breakup + assigns a number; pay
  * (idempotent) posts the 3-line ledger entry. Active merchant from {@link MerchantContext}.
  */
+@Tag(
+        name = "GST Invoicing",
+        description = "Create GST invoices (auto CGST/SGST/IGST breakup + numbering) and record idempotent invoice payment.")
 @RestController
 @RequestMapping("/v1/gst/invoices")
 public class GstInvoiceController {
@@ -80,6 +84,11 @@ public class GstInvoiceController {
                     merchantId, idempotencyKey, HttpStatus.OK.value(), objectMapper.writeValueAsString(view));
         }
         return ResponseEntity.ok(view);
+    }
+
+    @GetMapping
+    public List<InvoiceView> list() {
+        return service.list(MerchantContext.require()).stream().map(InvoiceView::ofHeader).toList();
     }
 
     @GetMapping("/{id}")

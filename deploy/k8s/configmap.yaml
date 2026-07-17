@@ -1,0 +1,35 @@
+# Non-secret runtime configuration for the backend. Secret values (DB password,
+# provider keys) live in secret.yaml — never put credentials in a ConfigMap.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qeet-pay-backend-config
+  namespace: qeet-pay
+  labels:
+    app.kubernetes.io/name: qeet-pay-backend
+    app.kubernetes.io/part-of: qeet-pay
+data:
+  SERVER_PORT: "4201"
+  # Production security chain: Qeet ID OIDC required + ECS-JSON structured logs.
+  SPRING_PROFILES_ACTIVE: "prod"
+  LOG_LEVEL: "info"
+
+  # Qeet ID OIDC relying-party (TAD §2.2).
+  QEETID_ISSUER_URI: "https://api.id.qeet.in"
+  QEETID_JWKS_URI: "https://api.id.qeet.in/.well-known/jwks.json"
+
+  # CORS: the public console origin(s).
+  ALLOWED_ORIGINS: "https://pay.qeet.in"
+
+  # Eventing (transactional outbox → NATS JetStream, TAD §9.1).
+  QEETPAY_NATS_ENABLED: "true"
+  NATS_URL: "nats://nats.qeet-pay.svc.cluster.local:4222"
+
+  # Fraud scoring (Python fraud-svc; off → allow-all).
+  QEETPAY_FRAUD_ENABLED: "false"
+  FRAUD_SVC_URL: "http://fraud-svc.qeet-pay.svc.cluster.local:8201"
+
+  # NOTE: DATABASE_URL points at the least-privilege NOSUPERUSER `qeet_pay_app`
+  # role — RLS is bypassed by a superuser/table-owner, so the app must NOT use
+  # the migration/owner role at runtime (CLAUDE.md "Gotchas"). The full JDBC URL
+  # incl. credentials is assembled from the Secret below.

@@ -15,7 +15,7 @@ spring:
     enabled: true
     default-schema: platform
     create-schemas: true
-    schemas: platform,ledger,payments,payouts,billing,gst,mandates,dunning,webhooks,kyb,analytics,reconciliation
+    schemas: platform,ledger,payments,payouts,billing,gst,mandates,dunning,webhooks,kyb,analytics,reconciliation,revrec,marketplace,filing,lending,virtualaccounts,escrow,crossborder,messaging,paymentlinks,bnpl,cards,insurance,tds,itc,esg
 
 server:
   port: ${SERVER_PORT:4201}
@@ -36,6 +36,31 @@ management:
       enabled: true
     readinessstate:
       enabled: true
+  # Metrics (Micrometer -> Prometheus at /actuator/prometheus). A common `application` tag plus the
+  # programmatic `service` tag (ObservabilityConfig) identify Qeet Pay's series in a shared backend.
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  # Distributed tracing (Micrometer Tracing -> OTLP). Export is OFF by default (no-op) so nothing is
+  # emitted until a collector is configured; qeet-logs is the intended OTLP target (TAD §13).
+  tracing:
+    sampling:
+      probability: ${QEETPAY_TRACING_SAMPLE_RATE:0.1}
+  otlp:
+    tracing:
+      export:
+        enabled: ${QEETPAY_OTEL_ENABLED:false}
+      endpoint: ${QEETPAY_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+
+# OpenAPI 3 / Swagger UI (springdoc). Spec at /v3/api-docs, explorer at /swagger-ui.html — both are
+# permitted in every security chain (SecurityConfig); auth is still enforced on /v1.
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
 
 # App config (TAD §2.2 identity contract, §9.1 outbox, §11 CORS).
 qeetpay:
@@ -55,13 +80,19 @@ qeetpay:
     key-id: ${QEETPAY_RAZORPAY_KEY_ID:}
     key-secret: ${QEETPAY_RAZORPAY_KEY_SECRET:}
     webhook-secret: ${QEETPAY_RAZORPAY_WEBHOOK_SECRET:}
+  # Per-caller rate limiting on /v1/** (in-memory token bucket, no Redis). OFF by default so dev/test
+  # never throttle; the prod/staging profiles below turn it on. capacity = burst, refill = sustained.
+  ratelimit:
+    enabled: false
+    capacity: ${QEETPAY_RATELIMIT_CAPACITY:120}
+    refill-per-second: ${QEETPAY_RATELIMIT_REFILL_PER_SECOND:50}
 
 logging:
   level:
     root: ${LOG_LEVEL:info}
 
 ---
-# Production profile: structured (ECS-JSON) console logs for the log pipeline.
+# Production profile: structured (ECS-JSON) console logs for the log pipeline; rate limiting enforced.
 spring:
   config:
     activate:
@@ -70,3 +101,16 @@ logging:
   structured:
     format:
       console: ecs
+qeetpay:
+  ratelimit:
+    enabled: true
+
+---
+# Staging profile: mirrors prod's auth posture and enforces rate limiting.
+spring:
+  config:
+    activate:
+      on-profile: staging
+qeetpay:
+  ratelimit:
+    enabled: true

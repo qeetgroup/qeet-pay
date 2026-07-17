@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.gst;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -18,6 +19,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** GST Credit/Debit Notes + Multi-GSTIN API (TAD Module 08). */
+@Tag(
+        name = "GST Invoicing",
+        description = "Issue GST credit/debit notes against invoices and manage multi-GSTIN registration.")
 @RestController
 @RequestMapping("/v1/gst")
 public class GstNoteController {

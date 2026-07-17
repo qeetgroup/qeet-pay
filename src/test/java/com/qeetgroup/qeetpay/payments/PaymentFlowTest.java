@@ -57,6 +57,23 @@ class PaymentFlowTest {
     }
 
     @Test
+    void listReturnsOnlyTheMerchantsOwnPaymentsNewestFirst() {
+        UUID merchantA = newMerchant();
+        UUID merchantB = newMerchant();
+
+        payments.create(merchantA, 10000, "INR", PaymentMethod.UPI, "first", false);
+        Payment second = payments.create(merchantA, 20000, "INR", PaymentMethod.CARD, "second", false);
+        payments.create(merchantB, 30000, "INR", PaymentMethod.UPI, "other", false);
+
+        var listA = payments.list(merchantA);
+        assertThat(listA).hasSize(2);
+        assertThat(listA.get(0).getId()).isEqualTo(second.getId()); // newest first
+        assertThat(listA).noneMatch(p -> p.getMerchantId().equals(merchantB));
+
+        assertThat(payments.list(merchantB)).hasSize(1);
+    }
+
+    @Test
     void failedAuthorizationCannotBeCaptured() {
         UUID merchantId = newMerchant();
         Payment p = payments.create(merchantId, 100000, "INR", PaymentMethod.UPI, "bad", true);

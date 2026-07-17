@@ -1,0 +1,7 @@
+# Standalone pnpm project (single package, like the sibling apps/console).
+# Explicitly decline sharp's optional native build: Next.js only uses sharp for
+# on-the-fly image optimization, which this SVG-only checkout doesn't need — the
+# built-in fallback is fine. Recording the decision here settles pnpm's
+# build-approval prompt so install and `pnpm build` / `pnpm typecheck` succeed.
+allowBuilds:
+  sharp: false

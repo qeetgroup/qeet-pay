@@ -37,9 +37,17 @@ dependencies {
     // Eventing: transactional outbox relay → NATS JetStream (TAD §9.1)
     implementation("io.nats:jnats:2.20.4")
 
-    // Observability
+    // Observability — metrics (Prometheus) + traces (Micrometer Tracing → OTLP export to qeet-logs).
+    // OTLP export is a no-op until enabled (management.otlp.tracing.export.enabled, default false);
+    // the Prometheus registry always feeds the already-exposed /actuator/prometheus endpoint.
+    // Versions of the tracing/OTLP artifacts are managed by the Spring Boot 3.4 BOM.
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("io.micrometer:micrometer-registry-prometheus")
+    implementation("io.micrometer:micrometer-tracing-bridge-otel")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp")
+
+    // API docs — OpenAPI 3 + Swagger UI (springdoc 2.8.x targets Spring Boot 3.4).
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
 
     // Migrations + driver
     implementation("org.flywaydb:flyway-core")
@@ -71,4 +79,24 @@ tasks.withType<Test> {
     // test JVM. Needed on some Docker Desktop engines whose API max is below docker-java's default
     // (or whose min is above it), which otherwise 400s Testcontainers. Unset on CI/Linux = no-op.
     System.getenv("DOCKER_API_VERSION")?.let { systemProperty("api.version", it) }
+
+    // --- Full-suite Testcontainers reliability -------------------------------------------------
+    // ~58 @SpringBootTest classes each spin their own Postgres. Running them concurrently (or letting
+    // containers pile up in one long-lived JVM with RYUK disabled) exhausts Docker and cascades into
+    // "context load threshold exceeded" failures, even though each class passes in isolation.
+    //
+    // Determinism strategy:
+    //   * maxParallelForks = 1  → never more than one test JVM, so containers never start in parallel.
+    //   * forkEvery = 12        → recycle the JVM every 12 classes; each fork's shutdown hooks reap
+    //                             any leaked containers (Testcontainers registers them even with RYUK
+    //                             off), bounding how many Postgres instances can accumulate.
+    //   * testcontainers.reuse.enable → lets classes that adopt AbstractIntegrationTest reuse a single
+    //                             singleton Postgres across the run (see that base class). Reuse across
+    //                             JVMs additionally needs ~/.testcontainers.properties, but the in-JVM
+    //                             singleton already collapses adopters onto one container + one context.
+    // Raising maxParallelForks is only safe once more classes adopt AbstractIntegrationTest; otherwise
+    // parallel forks each spin their own container and re-exhaust Docker.
+    maxParallelForks = 1
+    setForkEvery(12)
+    systemProperty("testcontainers.reuse.enable", "true")
 }

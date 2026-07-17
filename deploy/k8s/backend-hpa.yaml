@@ -1,0 +1,33 @@
+# Horizontal autoscaling for the backend (requires metrics-server).
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: qeet-pay-backend
+  namespace: qeet-pay
+  labels:
+    app.kubernetes.io/name: qeet-pay-backend
+    app.kubernetes.io/part-of: qeet-pay
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: qeet-pay-backend
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      # Cool-down before scaling in, to avoid flapping under bursty payment load.
+      stabilizationWindowSeconds: 300

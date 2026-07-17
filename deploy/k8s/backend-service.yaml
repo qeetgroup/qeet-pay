@@ -1,0 +1,17 @@
+# Stable in-cluster address for the backend. Fronted by the Ingress.
+apiVersion: v1
+kind: Service
+metadata:
+  name: qeet-pay-backend
+  namespace: qeet-pay
+  labels:
+    app.kubernetes.io/name: qeet-pay-backend
+    app.kubernetes.io/part-of: qeet-pay
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: qeet-pay-backend
+  ports:
+    - name: http
+      port: 4201
+      targetPort: http

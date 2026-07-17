@@ -184,6 +184,13 @@ public class PaymentService {
         return load(merchantId, paymentId);
     }
 
+    /** The merchant's payments, newest-created first. */
+    @Transactional(readOnly = true)
+    public List<Payment> list(UUID merchantId) {
+        merchantScope.apply(merchantId);
+        return payments.findByMerchantIdOrderByCreatedAtDesc(merchantId);
+    }
+
     /**
      * Looks up a merchant's payment without throwing — used by cross-module readers (e.g.
      * reconciliation) that treat a missing payment as a domain outcome, not an error.

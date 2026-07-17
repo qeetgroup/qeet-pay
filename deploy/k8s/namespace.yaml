@@ -1,0 +1,11 @@
+# Namespace for all Qeet Pay workloads. Apply this first.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: qeet-pay
+  labels:
+    app.kubernetes.io/part-of: qeet-pay
+    # Opt into the "restricted" Pod Security Standard — matches the non-root,
+    # no-privilege-escalation securityContext used by the Deployments below.
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
