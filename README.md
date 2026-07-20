@@ -267,9 +267,9 @@ See [Product_Requirement_Document.md](reqs/Product_Requirement_Document.md) — 
 
 | Project | Relationship to Qeet Pay |
 |---|---|
-| [qeet-id/](../qeet-id/) | Identity — merchant auth, customer identity federation, RBAC |
+| [qeet-id/](../qeet-servers/qeet-id-server/) | Identity — merchant auth, customer identity federation, RBAC |
 | [qeet-notify/](../qeet-notify/) | Notifications — payment receipts, dunning, WhatsApp invoicing |
 | [qeet-logs/](../qeet-logs/) | Logging — immutable financial audit trail |
 | [qeet-people/](../qeet-people/) | HCM — salary disbursement, EWA, statutory payments |
-| [qeet-in/](../qeet-in/) | Marketing site — Qeet Pay will be listed when launched |
+| [qeet-group/](../qeet-websites/qeet-group/) | Marketing site — Qeet Pay will be listed when launched |
 | [qeetrix/](../qeetrix/) | Design system — dashboard UI and checkout SDK components |

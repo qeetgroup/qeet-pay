@@ -4,7 +4,7 @@ The public, payer-facing web app for Qeet Pay **payment links**. A customer open
 a shared link — `…/l/{code}` — sees who they're paying and how much, picks a
 method (UPI / Card / Net Banking / Wallet), and pays. No account, no sign-in.
 
-It is the payments sibling of the [Qeet ID hosted login](../../../qeet-id/apps/login/)
+It is the payments sibling of the [Qeet ID hosted login](../../../qeet-hosted/qeet-id-login/)
 and mirrors it exactly: **Next.js 16 App Router · React 19 · `@qeetrix/ui` ·
 Tailwind v4 · i18next**, the same `page.tsx` (server) + `*-form.tsx` (client)
 split, and the same shell / card / form-alert component shapes.

@@ -12,7 +12,7 @@ yet — mapped against the PRD's 20 modules, AI spec, compliance obligations, an
 > boundary verification**, and **boots end-to-end** (all 50 migrations apply in order on a fresh DB, all
 > beans wire, all JPA mappings validate). Live third-party adapters are **gated off by default** (no creds
 > in-repo); all "AI" runs through the AI-gateway on **deterministic offline stand-ins** (no trained models
-> in-repo). **qeetrix:** all three apps (console/checkout/website) consume `@qeetrix/ui@^1.0.2` from the
+> in-repo). **qeetrix:** checkout (and the extracted `qeet-pay-console` + `qeet-pay-website` repos) consume `@qeetrix/ui@^1.0.2` from the
 > registry and are managed with **bun** (pnpm-lock removed). The API contract is published as **seven bounded-context OpenAPI files** in
 > [api/openapi/](api/openapi/) (no monolithic `v1.yaml`), and the three client SDKs are live at
 > `github.com/qeetgroup/qeet-pay-{node,go,react}`. The earlier webhooks-400 seed bug is **fixed**
@@ -150,5 +150,5 @@ this substrate. The Python `fraud-svc` additionally has the ONNX inference + Red
 docker compose -f docker-compose.yml up -d postgres      # Postgres :5201
 SPRING_PROFILES_ACTIVE=dev java -jar build/libs/qeet-pay-0.0.1-SNAPSHOT.jar   # API :4201 (or: make dev)
 cli/qp sandbox seed                                       # demo merchant → qp_test_… key
-cd apps/console && bun run dev                                  # console :3201
+cd ../qeet-consoles/qeet-pay-console && bun run dev             # console :3201 (own repo)
 ```

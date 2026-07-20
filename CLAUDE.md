@@ -13,7 +13,8 @@ collection), `escrow/` (conditional hold/release/refund), `crossborder/` (export
 `tds/` (TDS/TCS records + certificates), `itc/` (ITC / GSTR-2B reconciliation), `esg/` (per-txn carbon
 + offsets), plus IRN e-invoicing (in `gst/`), AI-dunning failure classification (in `dunning/`), smart
 provider orchestration/scorecards (in `payments/`), and cash-flow forecasting (in `analytics/`). The
-**operator console** ([apps/console/](apps/console/), port 3201), the **client SDKs**
+**operator console** ([`../qeet-consoles/qeet-pay-console/`](../qeet-consoles/qeet-pay-console/), port
+3201), the **client SDKs**
 ([`../qeet-sdks/qeet-pay-{node,go,react}`](../qeet-sdks/)), the **`qp` CLI** ([cli/](cli/), Go), and the
 **developer sandbox** (backend sandbox adapters are the default when no live keys are set; `qp sandbox
 seed` populates a demo merchant) are all built. See the module list and TAD §17.
@@ -21,10 +22,11 @@ seed` populates a demo merchant) are all built. See the module list and TAD §17
 **Stack:** Java 21 + Spring Boot 3.4 modular monolith (per `../qeet-files/TECH-STACK-GUIDE.md` —
 chosen over Go because GST/INR math needs `BigDecimal` and the NPCI/GSTN/Razorpay SDKs are
 JVM-only; sibling **qeet-people** is the closest reference, in Kotlin). Postgres 17 via Spring Data
-JPA. The Python/FastAPI fraud service is separate. The **operator console** is built in
-[apps/console/](apps/console/) on the qeet-consistent web stack (TanStack Start + Vite + React 19 +
-`@qeetrix/ui` + Tailwind v4 — matching the sibling `apps/console` in qeet-id/notify/people/logs; **not**
-Next.js despite older notes). Product docs live in **qeet-docs** (`docs.qeet.in/pay`), not here.
+JPA. The Python/FastAPI fraud service is separate. The **operator console** now lives in its own repo
+[`../qeet-consoles/qeet-pay-console/`](../qeet-consoles/qeet-pay-console/) (was `apps/console`, port
+3201) on the qeet-consistent web stack (TanStack Start + Vite + React 19 + `@qeetrix/ui` + Tailwind v4
+— matching the sibling consoles in qeet-id/notify/people/logs; **not** Next.js despite older notes).
+Product docs live in **qeet-docs** (`docs.qeet.in/pay`), not here.
 
 ## Ports ("pay" band — avoids qeet-id 5001, qeet-people 4101/5101/3101)
 
@@ -33,9 +35,7 @@ Next.js despite older notes). Product docs live in **qeet-docs** (`docs.qeet.in/
 | backend API | **4201** |
 | Postgres (docker-compose) | **5201** |
 | NATS (outbox relay target) | **4222** |
-| console ([apps/console/](apps/console/), `bun run dev`) | **3201** |
 | checkout ([apps/checkout/](apps/checkout/), `bun run dev`) | **3200** |
-| website ([apps/website/](apps/website/), `bun run dev`) | **3202** |
 
 ## Commands
 
@@ -112,14 +112,10 @@ skeleton boots without a live Qeet ID.
 
 ## Frontends ([apps/](apps/))
 
-Three apps, matching the qeet-id frontend suite (operator console on TanStack; public payer UI + marketing
-on Next.js):
-
-**Website** ([apps/website/](apps/website/)) — the marketing site on **port 3202** (**Next.js 16 +
-`@qeetrix/ui` + `motion` + `lucide-react` + Tailwind v4**, `(marketing)` route group, mirroring qeet-id's
-`apps/website`). Homepage + `/product`, `/pricing`, `/compare` (+ per-competitor), `/about`, `/contact`;
-static export, no backend calls; links out to the console, docs, and API portal. `bun install && bun run dev`.
-
+One in-repo app remains: the public payer UI (**checkout**, Next.js). The **admin console** now lives in
+its own repo [`qeet-consoles/qeet-pay-console`](../qeet-consoles/qeet-pay-console/) (was `apps/console`,
+port 3201), and the marketing **website** in [`qeet-websites/qeet-pay-website`](../qeet-websites/qeet-pay-website/)
+(was `apps/website`, port 3202):
 
 **Checkout** ([apps/checkout/](apps/checkout/)) — the **public, payer-facing** hosted payment page on
 **port 3200** (**Next.js 16 + `@qeetrix/ui` + Tailwind v4 + i18next**, mirroring qeet-id's `apps/login`).
@@ -128,21 +124,14 @@ the PUBLIC checkout API (`GET /v1/checkout/{code}` + `POST /v1/checkout/{code}/p
 the link's merchant via the no-RLS `paymentlinks.link_public_lookup` routing table (V36; dual-written on
 link creation) and returns a leak-proof safe view. `bun install && bun run dev`.
 
-**Console** ([apps/console/](apps/console/)) — operator dashboard on **port 3201**, on the qeet-consistent
-stack (**TanStack Start + Vite + React 19 + `@qeetrix/ui` + Tailwind v4**), scaffolded from the sibling
-`qeet-notify` console. `bun install` then
-`bun run dev` (`bun run build` / `bun run typecheck` verify it). Structure: `src/routes/{__root,_app,sign-in}` +
-`src/routes/_app/*.tsx` (one file-based route per nav item), `src/config/navigation.tsx` (the nav
-registry — routes must match its `url`s), `src/lib/{api,auth,money,list-view,export}` (the `api()`
-client speaks `X-Api-Key` to `:4201` and parses RFC-7807; `money.ts` = `formatInr`/`rupeesToMinor`,
-**money is paise everywhere**), `src/components/{page-header,data-table/*,app-sidebar,…}` (shared UI).
-Covers every backend domain (payments/links/refunds/orchestration, payouts/batches/ledger/recon/revrec,
-billing, GST/e-invoice/returns/ITC/TDS, lending/BNPL/cards/insurance/escrow, VAs/cross-border,
-marketplace/messaging/ESG, analytics/cash-flow, KYB/webhooks/settings). `src/routeTree.gen.ts` is
-generated by the Vite plugin on `dev`/`build` (kept in VCS, like the siblings); cross-route `Link`s use
-`to={"/x" as never}`. **Adding a route:** create `src/routes/_app/<slug>.tsx` with
-`createFileRoute("/_app/<slug>")` and add it to `navigation.tsx`. Build artifacts (`node_modules`,
-`.output`, `.nitro`, `.tanstack`, `dist`) are gitignored via `apps/console/.gitignore`.
+**Console** — the operator dashboard on **port 3201** (**TanStack Start + Vite + React 19 + `@qeetrix/ui`
++ Tailwind v4**) is now a standalone polyrepo at
+[`../qeet-consoles/qeet-pay-console`](../qeet-consoles/qeet-pay-console/) (extracted from `apps/console`).
+It still speaks `X-Api-Key` to this backend on `:4201` (`VITE_API_URL`), covering every backend domain
+(payments/links/refunds/orchestration, payouts/batches/ledger/recon/revrec, billing,
+GST/e-invoice/returns/ITC/TDS, lending/BNPL/cards/insurance/escrow, VAs/cross-border,
+marketplace/messaging/ESG, analytics/cash-flow, KYB/webhooks/settings). See that repo for structure and
+contribution notes.
 
 ## Production & ops
 
