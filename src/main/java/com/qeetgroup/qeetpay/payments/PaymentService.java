@@ -104,20 +104,112 @@ public class PaymentService {
             throw new IllegalStateException("capture failed: " + result.failureReason());
         }
 
-        UUID settlement = ledger.accountByCode(merchantId, "settlement").getId();
-        UUID revenue = ledger.accountByCode(merchantId, "revenue").getId();
-        UUID entryId =
-                ledger.postEntry(
-                        merchantId,
-                        "payment capture " + payment.getId(),
-                        payment.getCurrency(),
-                        List.of(
-                                new LedgerLineInput(settlement, Direction.DEBIT, payment.getAmountMinor()),
-                                new LedgerLineInput(revenue, Direction.CREDIT, payment.getAmountMinor())));
-
+        UUID entryId = postCaptureEntry(merchantId, payment);
         payment.markCaptured(entryId);
         outbox.enqueue(merchantId, "payment.captured", json(payment, entryId));
         return payment;
+    }
+
+    /**
+     * Captures a payment in response to a verified provider webhook (Razorpay
+     * {@code payment.captured}/{@code payment.authorized}). Unlike {@link #capture}, the money has
+     * <em>already</em> moved at the gateway, so this does NOT re-call the provider — it posts the same
+     * balanced double-entry (debit settlement / credit revenue) and marks the payment CAPTURED.
+     *
+     * <p>Idempotent: a redelivered event finds the payment already CAPTURED and returns without a
+     * second ledger posting. Called by {@link RazorpayWebhookService} after it has resolved the
+     * merchant from the event and is package-private so only the module drives it.
+     */
+    @Transactional
+    Payment captureFromWebhook(UUID merchantId, UUID paymentId, String realProviderPaymentId) {
+        merchantScope.apply(merchantId);
+        Payment payment = load(merchantId, paymentId);
+
+        if (payment.getStatus() == PaymentStatus.CAPTURED) {
+            return payment; // idempotent: already captured, never double-post
+        }
+        if (payment.getStatus() == PaymentStatus.FAILED
+                || payment.getStatus() == PaymentStatus.CANCELLED) {
+            throw new IllegalStateException(
+                    "cannot capture payment in status " + payment.getStatus());
+        }
+        if (realProviderPaymentId != null && !realProviderPaymentId.isBlank()) {
+            payment.recordProviderPaymentId(realProviderPaymentId);
+        }
+
+        UUID entryId = postCaptureEntry(merchantId, payment);
+        payment.markCaptured(entryId);
+        outbox.enqueue(merchantId, "payment.captured", json(payment, entryId));
+        return payment;
+    }
+
+    /**
+     * Marks a payment FAILED in response to a verified provider webhook (Razorpay
+     * {@code payment.failed}). Idempotent; a captured payment cannot retro-fail, so the event is
+     * ignored (returned unchanged) rather than throwing.
+     */
+    @Transactional
+    Payment markFailedFromWebhook(UUID merchantId, UUID paymentId, String reason) {
+        merchantScope.apply(merchantId);
+        Payment payment = load(merchantId, paymentId);
+        if (payment.getStatus() == PaymentStatus.FAILED
+                || payment.getStatus() == PaymentStatus.CAPTURED) {
+            return payment; // idempotent / no retro-fail of a captured payment
+        }
+        payment.markFailed(reason);
+        outbox.enqueue(merchantId, "payment.failed", json(payment, null));
+        return payment;
+    }
+
+    /**
+     * Finds a merchant's payment by the provider reference stored on it (the Razorpay {@code order_id}
+     * recorded at authorize time). Used by the inbound webhook path to correlate an event that carries
+     * only the provider's own identifiers.
+     */
+    @Transactional(readOnly = true)
+    Optional<Payment> findByProviderRef(UUID merchantId, String providerRef) {
+        merchantScope.apply(merchantId);
+        if (providerRef == null || providerRef.isBlank()) {
+            return Optional.empty();
+        }
+        return payments.findByMerchantIdAndProviderPaymentId(merchantId, providerRef);
+    }
+
+    /**
+     * Reflects a verified provider refund webhook (Razorpay {@code refund.processed}/
+     * {@code refund.created}). Our refunds are created terminal and are append-only (INSERT-only for
+     * the app role, V7), so this deliberately does NOT mutate the stored row — it correlates the
+     * provider refund id to our record and emits a confirmation outbox event. A refund we have no
+     * record of (e.g. initiated out-of-band in the Razorpay dashboard) is not found and is left to
+     * settlement reconciliation. Returns {@code true} when a matching refund was found.
+     */
+    @Transactional
+    boolean recordRefundWebhook(UUID merchantId, String providerRefundId, String providerStatus) {
+        merchantScope.apply(merchantId);
+        Optional<Refund> match =
+                (providerRefundId == null || providerRefundId.isBlank())
+                        ? Optional.empty()
+                        : refunds.findByMerchantIdAndProviderRefundId(merchantId, providerRefundId);
+        if (match.isEmpty()) {
+            return false;
+        }
+        outbox.enqueue(
+                merchantId,
+                "payment.refund." + providerStatus,
+                refundWebhookJson(match.get(), providerStatus));
+        return true;
+    }
+
+    private UUID postCaptureEntry(UUID merchantId, Payment payment) {
+        UUID settlement = ledger.accountByCode(merchantId, "settlement").getId();
+        UUID revenue = ledger.accountByCode(merchantId, "revenue").getId();
+        return ledger.postEntry(
+                merchantId,
+                "payment capture " + payment.getId(),
+                payment.getCurrency(),
+                List.of(
+                        new LedgerLineInput(settlement, Direction.DEBIT, payment.getAmountMinor()),
+                        new LedgerLineInput(revenue, Direction.CREDIT, payment.getAmountMinor())));
     }
 
     /**
@@ -236,6 +328,20 @@ public class PaymentService {
             return objectMapper.writeValueAsString(body);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("failed to serialise refund event", e);
+        }
+    }
+
+    private String refundWebhookJson(Refund refund, String providerStatus) {
+        try {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("refundId", refund.getId().toString());
+            body.put("paymentId", refund.getPaymentId().toString());
+            body.put("amountMinor", refund.getAmountMinor());
+            body.put("providerRefundId", refund.getProviderRefundId());
+            body.put("providerStatus", providerStatus);
+            return objectMapper.writeValueAsString(body);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("failed to serialise refund webhook event", e);
         }
     }
 }

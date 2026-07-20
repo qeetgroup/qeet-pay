@@ -71,6 +71,16 @@ public class Payment {
         touch();
     }
 
+    /**
+     * Records the provider's payment reference without a status change — used by the inbound Razorpay
+     * webhook to upgrade the stored {@code order_id} to the real {@code payment_id} once the customer
+     * has paid, so later provider calls (refund) correlate correctly.
+     */
+    public void recordProviderPaymentId(String providerPaymentId) {
+        this.providerPaymentId = providerPaymentId;
+        touch();
+    }
+
     public void markCaptured(UUID ledgerEntryId) {
         this.status = PaymentStatus.CAPTURED;
         this.ledgerEntryId = ledgerEntryId;
