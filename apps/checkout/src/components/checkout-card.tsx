@@ -22,17 +22,17 @@ export function CheckoutCard({ title, subtitle, children, className }: CheckoutC
   return (
     <Card
       className={cn(
-        "w-full max-w-sm border-border/60 shadow-xl shadow-black/5 backdrop-blur-sm",
+        "w-full max-w-md rounded-2xl border-border/60 shadow-xl shadow-black/6 ring-1 ring-foreground/4 backdrop-blur-sm",
         className,
       )}
     >
-      <CardContent className="space-y-6 pt-7 pb-7">
+      <CardContent className="space-y-6 px-6 pt-8 pb-7 sm:px-8">
         <div className="space-y-4 text-center">
           <div className="flex justify-center">
             <QeetLogo size={40} />
           </div>
           <div className="space-y-1.5">
-            <h1 className="pay-title text-2xl font-semibold tracking-tight">{title}</h1>
+            <h1 className="pay-title text-2xl font-semibold tracking-tight text-balance">{title}</h1>
             {subtitle ? <p className="text-muted-foreground text-sm">{subtitle}</p> : null}
           </div>
         </div>

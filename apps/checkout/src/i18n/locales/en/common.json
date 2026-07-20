@@ -12,6 +12,7 @@
       "gst": "GST invoicing",
       "secure": "PCI-DSS secure"
     },
+    "trust": "Bank-grade encryption · PCI-DSS Level 1",
     "footer": "Secured by Qeet Pay"
   }
 }

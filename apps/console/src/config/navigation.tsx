@@ -43,11 +43,15 @@ export type NavGroup = {
   items: NavItem[];
 };
 
+// Domain-grouped navigation registry. Only routes whose files exist today are
+// listed; the grouping establishes stable slots so new backend modules drop
+// into the right section without reshuffling. `url`s must match the file-based
+// routes under src/routes/_app.
 export const navGroups: NavGroup[] = [
   {
     label: "Overview",
     items: [
-      { title: "Dashboard", url: "/", icon: <LayoutDashboardIcon />, isActive: true },
+      { title: "Dashboard", url: "/", icon: <LayoutDashboardIcon /> },
       { title: "Analytics", url: "/analytics", icon: <BarChart3Icon /> },
       { title: "Cash Flow", url: "/cash-flow", icon: <TrendingUpIcon /> },
     ],
@@ -62,7 +66,7 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Payouts & Money",
+    label: "Payouts & Ledger",
     items: [
       { title: "Payouts", url: "/payouts", icon: <BanknoteIcon /> },
       { title: "Bulk Batches", url: "/payout-batches", icon: <UsersIcon /> },
@@ -82,7 +86,7 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "GST & Tax",
+    label: "Tax & GST",
     items: [
       { title: "GST Invoices", url: "/gst-invoices", icon: <ReceiptIcon /> },
       { title: "E-Invoicing (IRN)", url: "/einvoicing", icon: <FileCheck2Icon /> },
@@ -109,7 +113,7 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Growth",
+    label: "Marketplace",
     items: [
       { title: "Marketplace", url: "/marketplace", icon: <SplitIcon /> },
       { title: "Messaging", url: "/messaging", icon: <MessagesSquareIcon /> },
@@ -117,11 +121,12 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Compliance",
-    items: [
-      { title: "KYB", url: "/kyb", icon: <ShieldCheckIcon /> },
-      { title: "Webhooks", url: "/webhooks", icon: <WebhookIcon /> },
-    ],
+    label: "Risk & Compliance",
+    items: [{ title: "KYB", url: "/kyb", icon: <ShieldCheckIcon /> }],
+  },
+  {
+    label: "Developer",
+    items: [{ title: "Webhooks", url: "/webhooks", icon: <WebhookIcon /> }],
   },
   {
     label: "Settings",

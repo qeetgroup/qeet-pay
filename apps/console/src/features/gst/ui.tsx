@@ -1,8 +1,6 @@
 import {
   Badge,
   Button,
-  Card,
-  CardContent,
   Field,
   FieldDescription,
   FieldLabel,
@@ -102,13 +100,13 @@ export function SummaryStat({
   hint?: ReactNode;
 }) {
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <p className="truncate text-2xl font-semibold tabular-nums">{value}</p>
-        <p className="text-sm text-muted-foreground">{label}</p>
-        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-      </CardContent>
-    </Card>
+    <div className="flex flex-col gap-1.5 rounded-xl bg-card p-4 text-card-foreground ring-1 shadow-rest ring-foreground/10">
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <p className="truncate font-heading text-2xl font-semibold tracking-tight tabular-nums">
+        {value}
+      </p>
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    </div>
   );
 }
 

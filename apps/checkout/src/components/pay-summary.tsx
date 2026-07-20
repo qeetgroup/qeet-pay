@@ -22,17 +22,27 @@ type PaySummaryProps = {
 export function PaySummary({ title, amountMinor, currency, expiresAt }: PaySummaryProps) {
   const { t } = useTranslation("checkout");
   return (
-    <div className="border-border/60 bg-muted/40 space-y-1 rounded-lg border p-4 text-center">
-      <p className="text-muted-foreground text-sm">{title}</p>
-      <p className="pay-title text-3xl font-semibold tracking-tight">
+    <div className="border-border/60 bg-muted/40 space-y-2 rounded-xl border p-5 text-center">
+      <p className="text-muted-foreground text-xs font-medium uppercase tracking-[0.12em]">{title}</p>
+      <p className="pay-title pay-tabular text-[2.35rem] leading-none font-semibold tracking-tight">
         {amountMinor !== null ? formatMoney(amountMinor, currency) : t("summary.enterAmount")}
       </p>
       {expiresAt ? (
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground inline-flex items-center gap-1.5 text-xs">
+          <ClockIcon />
           {t("summary.expiresAt", { date: formatDate(expiresAt) })}
         </p>
       ) : null}
     </div>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-3.5" aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
   );
 }
 
