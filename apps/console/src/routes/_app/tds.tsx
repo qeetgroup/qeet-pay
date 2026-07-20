@@ -20,17 +20,25 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  TimeSince,
 } from "@qeetrix/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { LandmarkIcon, PlusIcon, ScrollTextIcon } from "lucide-react";
+import { DownloadIcon, FileSpreadsheetIcon, LandmarkIcon, PlusIcon, ScrollTextIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { ListToolbar, SortHeader } from "@/components/data-table";
 import { PageHeader } from "@/components/page-header";
 import { FormSheet, KeyValue, LabeledField, SummaryStat } from "@/features/gst/ui";
-import { ApiError, api } from "@/lib/api";
+import { ShortId } from "@/features/finance/shared";
+import { StatusBadge } from "@/features/money/status";
+import { API_BASE, ApiError, api, keyStore } from "@/lib/api";
+import { downloadBlob } from "@/lib/export";
 import { exportToCsv, exportToJson } from "@/lib/export";
 import { useListView } from "@/lib/list-view";
 import { formatBps, formatInr, rupeesToMinor } from "@/lib/money";
@@ -75,6 +83,30 @@ function quarterOfIso(iso: string): string {
 }
 
 function TdsPage() {
+  return (
+    <div className="flex min-w-0 flex-col gap-4">
+      <PageHeader description="Record tax deducted / collected at source, issue deductee certificates, and prepare + file the quarterly statutory returns (Form 24Q/26Q/27EQ)." />
+      <Tabs defaultValue="deductions">
+        <TabsList>
+          <TabsTrigger value="deductions">
+            <LandmarkIcon /> Deductions
+          </TabsTrigger>
+          <TabsTrigger value="returns">
+            <FileSpreadsheetIcon /> Returns
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="deductions" className="mt-4">
+          <DeductionsTab />
+        </TabsContent>
+        <TabsContent value="returns" className="mt-4">
+          <ReturnsTab />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function DeductionsTab() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
 
@@ -185,16 +217,7 @@ function TdsPage() {
   ];
 
   return (
-    <div className="flex min-w-0 flex-col gap-4">
-      <PageHeader
-        description="Record tax deducted / collected at source, issue deductee certificates, and pull the quarterly summary for return filing."
-        actions={
-          <Button onClick={() => setOpen(true)}>
-            <PlusIcon /> Record deduction
-          </Button>
-        }
-      />
-
+    <div className="flex flex-col gap-4">
       <Card>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -268,7 +291,11 @@ function TdsPage() {
               : exportToJson("tds-deductions", lv.view)
           }
           exportDisabled={lv.view.length === 0}
-        />
+        >
+          <Button size="sm" onClick={() => setOpen(true)}>
+            <PlusIcon /> Record deduction
+          </Button>
+        </ListToolbar>
 
         <DataState
           isLoading={deductionsQ.isLoading}
@@ -393,6 +420,172 @@ function TdsPage() {
           </LabeledField>
         </div>
       </FormSheet>
+    </div>
+  );
+}
+
+// ── Returns (Form 24Q/26Q/27EQ) ───────────────────────────────────────────────
+
+type ReturnSummary = {
+  id: string;
+  form: string;
+  fy: string;
+  quarter: string;
+  status: string;
+  deducteeCount: number;
+  deductionCount: number;
+  totalGrossMinor: number;
+  totalTaxMinor: number;
+  bsrCode: string | null;
+  challanNo: string | null;
+  challanDate: string | null;
+  ackToken: string | null;
+  preparedAt: string | null;
+  filedAt: string | null;
+  createdAt: string;
+};
+
+const RETURN_FORMS = [
+  { value: "FORM_26Q", label: "26Q — TDS (non-salary)" },
+  { value: "FORM_24Q", label: "24Q — TDS (salary)" },
+  { value: "FORM_27EQ", label: "27EQ — TCS" },
+];
+
+async function downloadReturn(id: string, form: string, quarter: string) {
+  const key = keyStore.get();
+  const res = await fetch(`${API_BASE}/v1/tds/returns/${id}/export`, {
+    headers: key ? { "X-Api-Key": key } : {},
+  });
+  const text = await res.text();
+  downloadBlob(text, "text/plain;charset=utf-8", `TDS_${form}_${quarter}.txt`);
+}
+
+function ReturnsTab() {
+  const qc = useQueryClient();
+  const [form, setForm] = useState("FORM_26Q");
+  const [quarter, setQuarter] = useState(quarterOfIso(todayIso()));
+
+  const returnsQ = useQuery({
+    queryKey: ["tds-returns"],
+    queryFn: () => api<ReturnSummary[]>("/v1/tds/returns"),
+    staleTime: 15_000,
+  });
+
+  const prepareM = useMutation({
+    mutationFn: () => api<{ ret: ReturnSummary }>("/v1/tds/returns/prepare", { method: "POST", body: { form, quarter } }),
+    meta: { successMessage: "Return prepared" },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tds-returns"] }),
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Could not prepare return"),
+  });
+
+  const fileM = useMutation({
+    mutationFn: (id: string) => api<ReturnSummary>(`/v1/tds/returns/${id}/file`, { method: "POST" }),
+    meta: { successMessage: "Return filed" },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tds-returns"] }),
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Could not file return"),
+  });
+
+  const rows = returnsQ.data ?? [];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Prepare a quarterly return</CardTitle>
+          <CardDescription>Aggregates the quarter's deductions into a Form 24Q/26Q/27EQ, ready to export and file.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form
+            className="flex flex-col gap-3 sm:flex-row sm:items-end"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (quarter.trim()) prepareM.mutate();
+            }}
+          >
+            <LabeledField label="Form" htmlFor="ret-form">
+              <Select value={form} onValueChange={(v) => v && setForm(v)}>
+                <SelectTrigger id="ret-form" className="w-full sm:w-64">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {RETURN_FORMS.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </LabeledField>
+            <LabeledField label="Quarter" htmlFor="ret-quarter" description='e.g. "2026-Q2".'>
+              <Input id="ret-quarter" value={quarter} onChange={(e) => setQuarter(e.target.value)} className="sm:w-40" />
+            </LabeledField>
+            <Button type="submit" disabled={prepareM.isPending}>
+              {prepareM.isPending ? "Preparing…" : "Prepare return"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="gap-0 py-0">
+        <div className="border-b p-4">
+          <p className="text-sm font-medium">Prepared returns</p>
+        </div>
+        <DataState
+          isLoading={returnsQ.isLoading}
+          isError={returnsQ.isError}
+          error={returnsQ.error}
+          isEmpty={rows.length === 0}
+          emptyIcon={FileSpreadsheetIcon}
+          emptyTitle="No returns yet"
+          emptyDescription="Prepare a return for a quarter to export the NSDL FVU file and file it to the TIN gateway."
+          skeletonRows={4}
+          className="p-6"
+        >
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Form</TableHead>
+                <TableHead>Period</TableHead>
+                <TableHead className="text-end">Deductees</TableHead>
+                <TableHead className="text-end">Tax</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Ack / challan</TableHead>
+                <TableHead className="text-end">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-medium">{r.form}</TableCell>
+                  <TableCell className="tabular-nums">
+                    {r.fy} · {r.quarter}
+                  </TableCell>
+                  <TableCell className="text-end tabular-nums">{r.deducteeCount}</TableCell>
+                  <TableCell className="text-end tabular-nums">{formatInr(r.totalTaxMinor)}</TableCell>
+                  <TableCell>
+                    <StatusBadge status={r.status} />
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">
+                    {r.ackToken ?? (r.preparedAt ? "prepared" : <ShortId id={r.id} />)}
+                  </TableCell>
+                  <TableCell className="text-end">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button variant="outline" size="sm" onClick={() => downloadReturn(r.id, r.form, r.quarter)}>
+                        <DownloadIcon /> Export
+                      </Button>
+                      {r.status !== "FILED" && (
+                        <Button size="sm" disabled={fileM.isPending} onClick={() => fileM.mutate(r.id)}>
+                          File
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </DataState>
+      </Card>
     </div>
   );
 }

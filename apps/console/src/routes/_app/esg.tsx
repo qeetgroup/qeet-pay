@@ -43,6 +43,7 @@ import { useEffect, useState } from "react";
 
 import { ListToolbar } from "@/components/data-table";
 import { PageHeader } from "@/components/page-header";
+import { KpiRow, KpiTile } from "@/components/stat-tile";
 import { ApiError, api } from "@/lib/api";
 import { exportToCsv, exportToJson } from "@/lib/export";
 import { useListView } from "@/lib/list-view";
@@ -96,35 +97,6 @@ function errMsg(e: unknown): string {
   return e instanceof ApiError ? e.message : e instanceof Error ? e.message : "Something went wrong.";
 }
 
-function StatCard({
-  icon,
-  title,
-  value,
-  sub,
-  iconClass = "bg-primary/10 text-primary",
-}: {
-  icon: React.ReactNode;
-  title: string;
-  value: string;
-  sub?: string;
-  iconClass?: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="flex items-center gap-4 pt-6">
-        <div className={cn("grid size-10 shrink-0 place-items-center rounded-lg [&_svg]:size-5", iconClass)}>
-          {icon}
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-2xl font-semibold tabular-nums">{value}</p>
-          <p className="text-sm text-muted-foreground">{title}</p>
-          {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function EsgPage() {
   const [footprintOpen, setFootprintOpen] = useState(false);
   const [offsetOpen, setOffsetOpen] = useState(false);
@@ -165,32 +137,31 @@ function EsgPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          icon={<CloudIcon />}
-          title="Total CO₂ emitted"
+      <KpiRow cols={3}>
+        <KpiTile
+          icon={CloudIcon}
+          tone="neutral"
+          label="Total CO₂ emitted"
           value={formatGrams(summary?.totalGramsCo2 ?? 0)}
-          sub={`${(summary?.recordCount ?? 0).toLocaleString("en-IN")} transactions measured`}
-          iconClass="bg-slate-500/10 text-slate-600 dark:text-slate-300"
+          hint={`${(summary?.recordCount ?? 0).toLocaleString("en-IN")} transactions measured`}
+          loading={summaryQ.isLoading}
         />
-        <StatCard
-          icon={<SproutIcon />}
-          title="CO₂ offset"
+        <KpiTile
+          icon={SproutIcon}
+          tone="success"
+          label="CO₂ offset"
           value={formatGrams(summary?.totalGramsOffset ?? 0)}
-          iconClass="bg-green-500/10 text-green-600 dark:text-green-400"
+          loading={summaryQ.isLoading}
         />
-        <StatCard
-          icon={<ScaleIcon />}
-          title="Net CO₂"
+        <KpiTile
+          icon={ScaleIcon}
+          tone={net <= 0 ? "success" : "warning"}
+          label="Net CO₂"
           value={formatGrams(net)}
-          sub={net <= 0 ? "Net zero achieved" : "Remaining to offset"}
-          iconClass={
-            net <= 0
-              ? "bg-green-500/10 text-green-600 dark:text-green-400"
-              : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-          }
+          hint={net <= 0 ? "Net zero achieved" : "Remaining to offset"}
+          loading={summaryQ.isLoading}
         />
-      </div>
+      </KpiRow>
 
       <Card className="py-0">
         <ListToolbar

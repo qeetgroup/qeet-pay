@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,7 @@ public class DunningService {
     private final DunningAttemptRepository attempts;
     private final DunningRuleEngine engine;
     private final FailureClassifier classifier;
+    private final AiRetryStrategy aiRetryStrategy;
     private final BillingService billing;
     private final MerchantScope merchantScope;
     private final OutboxService outbox;
@@ -42,6 +44,7 @@ public class DunningService {
             DunningAttemptRepository attempts,
             DunningRuleEngine engine,
             FailureClassifier classifier,
+            AiRetryStrategy aiRetryStrategy,
             BillingService billing,
             MerchantScope merchantScope,
             OutboxService outbox,
@@ -50,6 +53,7 @@ public class DunningService {
         this.attempts = attempts;
         this.engine = engine;
         this.classifier = classifier;
+        this.aiRetryStrategy = aiRetryStrategy;
         this.billing = billing;
         this.merchantScope = merchantScope;
         this.outbox = outbox;
@@ -116,13 +120,37 @@ public class DunningService {
     }
 
     /**
-     * AI-dunning entrypoint (PRD Module 04.1): like {@link #trigger} but the failure code is
-     * classified and the classification drives the next retry's timing and notification channels
-     * (instead of a flat rule interval). Non-retryable categories (risk/mandate) stop auto-recovery
-     * and escalate. The classification is recorded on the attempt for the merchant to inspect.
+     * AI retry recommendation (PRD Module 04.2 "Smart Retry" + 04.5 "Explainable Dunning") — no state
+     * change. Routes through the {@link AiRetryStrategy} / AI gateway to personalise channel order,
+     * payday-aware timing and message tone from the engagement signals, with the deterministic
+     * {@link FailureClassifier} heuristic as the fail-closed fallback. Every call is masked + audited.
+     */
+    public AiRetryPlan recommendRetry(
+            UUID merchantId, String failureCode, EngagementSignals signals, Set<String> scopes) {
+        // No state change here; AiGateway#evaluate applies the merchant RLS scope in its own transaction.
+        return aiRetryStrategy.recommend(merchantId, failureCode, signals, scopes);
+    }
+
+    /**
+     * AI-dunning entrypoint (PRD Module 04.1/04.2): like {@link #trigger} but the failure code is
+     * classified and — via {@link AiRetryStrategy} through the AI gateway — the recommendation drives the
+     * next retry's timing and notification channels (instead of a flat rule interval). Non-retryable
+     * categories (risk/mandate) stop auto-recovery and escalate. The recommendation is recorded on the
+     * attempt for the merchant to inspect. The money-affecting retry/stop decision stays deterministic.
      */
     @Transactional
     public DunningAttempt triggerSmart(UUID merchantId, UUID subscriptionId, String failureCode) {
+        return triggerSmart(merchantId, subscriptionId, failureCode, EngagementSignals.unknown(), Set.of());
+    }
+
+    /** {@link #triggerSmart(UUID, UUID, String)} with explicit engagement signals + caller scopes. */
+    @Transactional
+    public DunningAttempt triggerSmart(
+            UUID merchantId,
+            UUID subscriptionId,
+            String failureCode,
+            EngagementSignals signals,
+            Set<String> scopes) {
         merchantScope.apply(merchantId);
         Subscription sub = billing.getSubscription(merchantId, subscriptionId);
         if (sub.getStatus() != SubscriptionStatus.ACTIVE) {
@@ -130,7 +158,14 @@ public class DunningService {
         }
         billing.markPastDue(merchantId, subscriptionId);
 
-        RetryRecommendation rec = classifier.classify(failureCode);
+        AiRetryPlan plan = aiRetryStrategy.recommend(merchantId, failureCode, signals, scopes);
+        RetryRecommendation rec =
+                new RetryRecommendation(
+                        plan.category(),
+                        plan.retryable(),
+                        plan.recommendedDelayHours(),
+                        plan.channelsCsv(),
+                        String.join(" ", plan.reasons()));
         UUID ruleId =
                 engine.match(rules.findByMerchantIdAndActiveTrue(merchantId), failureCode)
                         .map(DunningRule::getId)

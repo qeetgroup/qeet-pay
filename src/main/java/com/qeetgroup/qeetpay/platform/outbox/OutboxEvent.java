@@ -57,6 +57,11 @@ public class OutboxEvent {
         return payload;
     }
 
+    /** {@code null} until the relay has successfully published this row (the un-published marker). */
+    public Instant getPublishedAt() {
+        return publishedAt;
+    }
+
     public void markPublished() {
         this.publishedAt = Instant.now();
     }

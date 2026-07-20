@@ -75,12 +75,20 @@ public class GstInvoiceLine {
         this.lineTotalMinor = taxableMinor + gst.totalGstMinor();
     }
 
+    public UUID getInvoiceId() {
+        return invoiceId;
+    }
+
     public String getDescription() {
         return description;
     }
 
     public String getHsnSac() {
         return hsnSac;
+    }
+
+    public int getGstRate() {
+        return gstRate;
     }
 
     public long getTaxableMinor() {

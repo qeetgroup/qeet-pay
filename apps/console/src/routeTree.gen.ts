@@ -21,31 +21,43 @@ import { Route as AppRevrecRouteImport } from './routes/_app/revrec'
 import { Route as AppRefundsRouteImport } from './routes/_app/refunds'
 import { Route as AppReconciliationRouteImport } from './routes/_app/reconciliation'
 import { Route as AppPlansRouteImport } from './routes/_app/plans'
+import { Route as AppPayrollRouteImport } from './routes/_app/payroll'
 import { Route as AppPayoutsRouteImport } from './routes/_app/payouts'
 import { Route as AppPayoutBatchesRouteImport } from './routes/_app/payout-batches'
 import { Route as AppPaymentsRouteImport } from './routes/_app/payments'
 import { Route as AppPaymentLinksRouteImport } from './routes/_app/payment-links'
 import { Route as AppOrchestrationRouteImport } from './routes/_app/orchestration'
+import { Route as AppOndcRouteImport } from './routes/_app/ondc'
+import { Route as AppOfflineRouteImport } from './routes/_app/offline'
 import { Route as AppMessagingRouteImport } from './routes/_app/messaging'
 import { Route as AppMarketplaceRouteImport } from './routes/_app/marketplace'
 import { Route as AppMandatesRouteImport } from './routes/_app/mandates'
 import { Route as AppLendingRouteImport } from './routes/_app/lending'
 import { Route as AppLedgerRouteImport } from './routes/_app/ledger'
+import { Route as AppKycRouteImport } from './routes/_app/kyc'
 import { Route as AppKybRouteImport } from './routes/_app/kyb'
 import { Route as AppItcRouteImport } from './routes/_app/itc'
 import { Route as AppInvoicesRouteImport } from './routes/_app/invoices'
 import { Route as AppInsuranceRouteImport } from './routes/_app/insurance'
 import { Route as AppGstReturnsRouteImport } from './routes/_app/gst-returns'
 import { Route as AppGstInvoicesRouteImport } from './routes/_app/gst-invoices'
+import { Route as AppGstAiRouteImport } from './routes/_app/gst-ai'
+import { Route as AppFraudRouteImport } from './routes/_app/fraud'
 import { Route as AppEsgRouteImport } from './routes/_app/esg'
 import { Route as AppEscrowRouteImport } from './routes/_app/escrow'
 import { Route as AppEinvoicingRouteImport } from './routes/_app/einvoicing'
 import { Route as AppDunningRouteImport } from './routes/_app/dunning'
 import { Route as AppCrossborderRouteImport } from './routes/_app/crossborder'
+import { Route as AppCopilotRouteImport } from './routes/_app/copilot'
+import { Route as AppComplianceRouteImport } from './routes/_app/compliance'
 import { Route as AppCashFlowRouteImport } from './routes/_app/cash-flow'
 import { Route as AppCardsRouteImport } from './routes/_app/cards'
 import { Route as AppBnplRouteImport } from './routes/_app/bnpl'
 import { Route as AppAnalyticsRouteImport } from './routes/_app/analytics'
+import { Route as AppAmlRouteImport } from './routes/_app/aml'
+import { Route as AppAiRouteImport } from './routes/_app/ai'
+import { Route as AppAgenticRouteImport } from './routes/_app/agentic'
+import { Route as AppAccountingRouteImport } from './routes/_app/accounting'
 import { Route as AppSettingsMerchantRouteImport } from './routes/_app/settings/merchant'
 import { Route as AppSettingsApiKeysRouteImport } from './routes/_app/settings/api-keys'
 
@@ -108,6 +120,11 @@ const AppPlansRoute = AppPlansRouteImport.update({
   path: '/plans',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPayrollRoute = AppPayrollRouteImport.update({
+  id: '/payroll',
+  path: '/payroll',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPayoutsRoute = AppPayoutsRouteImport.update({
   id: '/payouts',
   path: '/payouts',
@@ -133,6 +150,16 @@ const AppOrchestrationRoute = AppOrchestrationRouteImport.update({
   path: '/orchestration',
   getParentRoute: () => AppRoute,
 } as any)
+const AppOndcRoute = AppOndcRouteImport.update({
+  id: '/ondc',
+  path: '/ondc',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOfflineRoute = AppOfflineRouteImport.update({
+  id: '/offline',
+  path: '/offline',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMessagingRoute = AppMessagingRouteImport.update({
   id: '/messaging',
   path: '/messaging',
@@ -156,6 +183,11 @@ const AppLendingRoute = AppLendingRouteImport.update({
 const AppLedgerRoute = AppLedgerRouteImport.update({
   id: '/ledger',
   path: '/ledger',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppKycRoute = AppKycRouteImport.update({
+  id: '/kyc',
+  path: '/kyc',
   getParentRoute: () => AppRoute,
 } as any)
 const AppKybRoute = AppKybRouteImport.update({
@@ -188,6 +220,16 @@ const AppGstInvoicesRoute = AppGstInvoicesRouteImport.update({
   path: '/gst-invoices',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGstAiRoute = AppGstAiRouteImport.update({
+  id: '/gst-ai',
+  path: '/gst-ai',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFraudRoute = AppFraudRouteImport.update({
+  id: '/fraud',
+  path: '/fraud',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEsgRoute = AppEsgRouteImport.update({
   id: '/esg',
   path: '/esg',
@@ -213,6 +255,16 @@ const AppCrossborderRoute = AppCrossborderRouteImport.update({
   path: '/crossborder',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCopilotRoute = AppCopilotRouteImport.update({
+  id: '/copilot',
+  path: '/copilot',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppComplianceRoute = AppComplianceRouteImport.update({
+  id: '/compliance',
+  path: '/compliance',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCashFlowRoute = AppCashFlowRouteImport.update({
   id: '/cash-flow',
   path: '/cash-flow',
@@ -233,6 +285,26 @@ const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAmlRoute = AppAmlRouteImport.update({
+  id: '/aml',
+  path: '/aml',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAiRoute = AppAiRouteImport.update({
+  id: '/ai',
+  path: '/ai',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAgenticRoute = AppAgenticRouteImport.update({
+  id: '/agentic',
+  path: '/agentic',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAccountingRoute = AppAccountingRouteImport.update({
+  id: '/accounting',
+  path: '/accounting',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsMerchantRoute = AppSettingsMerchantRouteImport.update({
   id: '/merchant',
   path: '/merchant',
@@ -247,31 +319,43 @@ const AppSettingsApiKeysRoute = AppSettingsApiKeysRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/sign-in': typeof SignInRoute
+  '/accounting': typeof AppAccountingRoute
+  '/agentic': typeof AppAgenticRoute
+  '/ai': typeof AppAiRoute
+  '/aml': typeof AppAmlRoute
   '/analytics': typeof AppAnalyticsRoute
   '/bnpl': typeof AppBnplRoute
   '/cards': typeof AppCardsRoute
   '/cash-flow': typeof AppCashFlowRoute
+  '/compliance': typeof AppComplianceRoute
+  '/copilot': typeof AppCopilotRoute
   '/crossborder': typeof AppCrossborderRoute
   '/dunning': typeof AppDunningRoute
   '/einvoicing': typeof AppEinvoicingRoute
   '/escrow': typeof AppEscrowRoute
   '/esg': typeof AppEsgRoute
+  '/fraud': typeof AppFraudRoute
+  '/gst-ai': typeof AppGstAiRoute
   '/gst-invoices': typeof AppGstInvoicesRoute
   '/gst-returns': typeof AppGstReturnsRoute
   '/insurance': typeof AppInsuranceRoute
   '/invoices': typeof AppInvoicesRoute
   '/itc': typeof AppItcRoute
   '/kyb': typeof AppKybRoute
+  '/kyc': typeof AppKycRoute
   '/ledger': typeof AppLedgerRoute
   '/lending': typeof AppLendingRoute
   '/mandates': typeof AppMandatesRoute
   '/marketplace': typeof AppMarketplaceRoute
   '/messaging': typeof AppMessagingRoute
+  '/offline': typeof AppOfflineRoute
+  '/ondc': typeof AppOndcRoute
   '/orchestration': typeof AppOrchestrationRoute
   '/payment-links': typeof AppPaymentLinksRoute
   '/payments': typeof AppPaymentsRoute
   '/payout-batches': typeof AppPayoutBatchesRoute
   '/payouts': typeof AppPayoutsRoute
+  '/payroll': typeof AppPayrollRoute
   '/plans': typeof AppPlansRoute
   '/reconciliation': typeof AppReconciliationRoute
   '/refunds': typeof AppRefundsRoute
@@ -286,31 +370,43 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
+  '/accounting': typeof AppAccountingRoute
+  '/agentic': typeof AppAgenticRoute
+  '/ai': typeof AppAiRoute
+  '/aml': typeof AppAmlRoute
   '/analytics': typeof AppAnalyticsRoute
   '/bnpl': typeof AppBnplRoute
   '/cards': typeof AppCardsRoute
   '/cash-flow': typeof AppCashFlowRoute
+  '/compliance': typeof AppComplianceRoute
+  '/copilot': typeof AppCopilotRoute
   '/crossborder': typeof AppCrossborderRoute
   '/dunning': typeof AppDunningRoute
   '/einvoicing': typeof AppEinvoicingRoute
   '/escrow': typeof AppEscrowRoute
   '/esg': typeof AppEsgRoute
+  '/fraud': typeof AppFraudRoute
+  '/gst-ai': typeof AppGstAiRoute
   '/gst-invoices': typeof AppGstInvoicesRoute
   '/gst-returns': typeof AppGstReturnsRoute
   '/insurance': typeof AppInsuranceRoute
   '/invoices': typeof AppInvoicesRoute
   '/itc': typeof AppItcRoute
   '/kyb': typeof AppKybRoute
+  '/kyc': typeof AppKycRoute
   '/ledger': typeof AppLedgerRoute
   '/lending': typeof AppLendingRoute
   '/mandates': typeof AppMandatesRoute
   '/marketplace': typeof AppMarketplaceRoute
   '/messaging': typeof AppMessagingRoute
+  '/offline': typeof AppOfflineRoute
+  '/ondc': typeof AppOndcRoute
   '/orchestration': typeof AppOrchestrationRoute
   '/payment-links': typeof AppPaymentLinksRoute
   '/payments': typeof AppPaymentsRoute
   '/payout-batches': typeof AppPayoutBatchesRoute
   '/payouts': typeof AppPayoutsRoute
+  '/payroll': typeof AppPayrollRoute
   '/plans': typeof AppPlansRoute
   '/reconciliation': typeof AppReconciliationRoute
   '/refunds': typeof AppRefundsRoute
@@ -328,31 +424,43 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/sign-in': typeof SignInRoute
+  '/_app/accounting': typeof AppAccountingRoute
+  '/_app/agentic': typeof AppAgenticRoute
+  '/_app/ai': typeof AppAiRoute
+  '/_app/aml': typeof AppAmlRoute
   '/_app/analytics': typeof AppAnalyticsRoute
   '/_app/bnpl': typeof AppBnplRoute
   '/_app/cards': typeof AppCardsRoute
   '/_app/cash-flow': typeof AppCashFlowRoute
+  '/_app/compliance': typeof AppComplianceRoute
+  '/_app/copilot': typeof AppCopilotRoute
   '/_app/crossborder': typeof AppCrossborderRoute
   '/_app/dunning': typeof AppDunningRoute
   '/_app/einvoicing': typeof AppEinvoicingRoute
   '/_app/escrow': typeof AppEscrowRoute
   '/_app/esg': typeof AppEsgRoute
+  '/_app/fraud': typeof AppFraudRoute
+  '/_app/gst-ai': typeof AppGstAiRoute
   '/_app/gst-invoices': typeof AppGstInvoicesRoute
   '/_app/gst-returns': typeof AppGstReturnsRoute
   '/_app/insurance': typeof AppInsuranceRoute
   '/_app/invoices': typeof AppInvoicesRoute
   '/_app/itc': typeof AppItcRoute
   '/_app/kyb': typeof AppKybRoute
+  '/_app/kyc': typeof AppKycRoute
   '/_app/ledger': typeof AppLedgerRoute
   '/_app/lending': typeof AppLendingRoute
   '/_app/mandates': typeof AppMandatesRoute
   '/_app/marketplace': typeof AppMarketplaceRoute
   '/_app/messaging': typeof AppMessagingRoute
+  '/_app/offline': typeof AppOfflineRoute
+  '/_app/ondc': typeof AppOndcRoute
   '/_app/orchestration': typeof AppOrchestrationRoute
   '/_app/payment-links': typeof AppPaymentLinksRoute
   '/_app/payments': typeof AppPaymentsRoute
   '/_app/payout-batches': typeof AppPayoutBatchesRoute
   '/_app/payouts': typeof AppPayoutsRoute
+  '/_app/payroll': typeof AppPayrollRoute
   '/_app/plans': typeof AppPlansRoute
   '/_app/reconciliation': typeof AppReconciliationRoute
   '/_app/refunds': typeof AppRefundsRoute
@@ -371,31 +479,43 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/sign-in'
+    | '/accounting'
+    | '/agentic'
+    | '/ai'
+    | '/aml'
     | '/analytics'
     | '/bnpl'
     | '/cards'
     | '/cash-flow'
+    | '/compliance'
+    | '/copilot'
     | '/crossborder'
     | '/dunning'
     | '/einvoicing'
     | '/escrow'
     | '/esg'
+    | '/fraud'
+    | '/gst-ai'
     | '/gst-invoices'
     | '/gst-returns'
     | '/insurance'
     | '/invoices'
     | '/itc'
     | '/kyb'
+    | '/kyc'
     | '/ledger'
     | '/lending'
     | '/mandates'
     | '/marketplace'
     | '/messaging'
+    | '/offline'
+    | '/ondc'
     | '/orchestration'
     | '/payment-links'
     | '/payments'
     | '/payout-batches'
     | '/payouts'
+    | '/payroll'
     | '/plans'
     | '/reconciliation'
     | '/refunds'
@@ -410,31 +530,43 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/sign-in'
+    | '/accounting'
+    | '/agentic'
+    | '/ai'
+    | '/aml'
     | '/analytics'
     | '/bnpl'
     | '/cards'
     | '/cash-flow'
+    | '/compliance'
+    | '/copilot'
     | '/crossborder'
     | '/dunning'
     | '/einvoicing'
     | '/escrow'
     | '/esg'
+    | '/fraud'
+    | '/gst-ai'
     | '/gst-invoices'
     | '/gst-returns'
     | '/insurance'
     | '/invoices'
     | '/itc'
     | '/kyb'
+    | '/kyc'
     | '/ledger'
     | '/lending'
     | '/mandates'
     | '/marketplace'
     | '/messaging'
+    | '/offline'
+    | '/ondc'
     | '/orchestration'
     | '/payment-links'
     | '/payments'
     | '/payout-batches'
     | '/payouts'
+    | '/payroll'
     | '/plans'
     | '/reconciliation'
     | '/refunds'
@@ -451,31 +583,43 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/sign-in'
+    | '/_app/accounting'
+    | '/_app/agentic'
+    | '/_app/ai'
+    | '/_app/aml'
     | '/_app/analytics'
     | '/_app/bnpl'
     | '/_app/cards'
     | '/_app/cash-flow'
+    | '/_app/compliance'
+    | '/_app/copilot'
     | '/_app/crossborder'
     | '/_app/dunning'
     | '/_app/einvoicing'
     | '/_app/escrow'
     | '/_app/esg'
+    | '/_app/fraud'
+    | '/_app/gst-ai'
     | '/_app/gst-invoices'
     | '/_app/gst-returns'
     | '/_app/insurance'
     | '/_app/invoices'
     | '/_app/itc'
     | '/_app/kyb'
+    | '/_app/kyc'
     | '/_app/ledger'
     | '/_app/lending'
     | '/_app/mandates'
     | '/_app/marketplace'
     | '/_app/messaging'
+    | '/_app/offline'
+    | '/_app/ondc'
     | '/_app/orchestration'
     | '/_app/payment-links'
     | '/_app/payments'
     | '/_app/payout-batches'
     | '/_app/payouts'
+    | '/_app/payroll'
     | '/_app/plans'
     | '/_app/reconciliation'
     | '/_app/refunds'
@@ -581,6 +725,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPlansRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/payroll': {
+      id: '/_app/payroll'
+      path: '/payroll'
+      fullPath: '/payroll'
+      preLoaderRoute: typeof AppPayrollRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/payouts': {
       id: '/_app/payouts'
       path: '/payouts'
@@ -616,6 +767,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppOrchestrationRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/ondc': {
+      id: '/_app/ondc'
+      path: '/ondc'
+      fullPath: '/ondc'
+      preLoaderRoute: typeof AppOndcRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/offline': {
+      id: '/_app/offline'
+      path: '/offline'
+      fullPath: '/offline'
+      preLoaderRoute: typeof AppOfflineRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/messaging': {
       id: '/_app/messaging'
       path: '/messaging'
@@ -649,6 +814,13 @@ declare module '@tanstack/react-router' {
       path: '/ledger'
       fullPath: '/ledger'
       preLoaderRoute: typeof AppLedgerRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/kyc': {
+      id: '/_app/kyc'
+      path: '/kyc'
+      fullPath: '/kyc'
+      preLoaderRoute: typeof AppKycRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/kyb': {
@@ -693,6 +865,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGstInvoicesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/gst-ai': {
+      id: '/_app/gst-ai'
+      path: '/gst-ai'
+      fullPath: '/gst-ai'
+      preLoaderRoute: typeof AppGstAiRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/fraud': {
+      id: '/_app/fraud'
+      path: '/fraud'
+      fullPath: '/fraud'
+      preLoaderRoute: typeof AppFraudRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/esg': {
       id: '/_app/esg'
       path: '/esg'
@@ -728,6 +914,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCrossborderRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/copilot': {
+      id: '/_app/copilot'
+      path: '/copilot'
+      fullPath: '/copilot'
+      preLoaderRoute: typeof AppCopilotRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/compliance': {
+      id: '/_app/compliance'
+      path: '/compliance'
+      fullPath: '/compliance'
+      preLoaderRoute: typeof AppComplianceRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/cash-flow': {
       id: '/_app/cash-flow'
       path: '/cash-flow'
@@ -754,6 +954,34 @@ declare module '@tanstack/react-router' {
       path: '/analytics'
       fullPath: '/analytics'
       preLoaderRoute: typeof AppAnalyticsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/aml': {
+      id: '/_app/aml'
+      path: '/aml'
+      fullPath: '/aml'
+      preLoaderRoute: typeof AppAmlRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/ai': {
+      id: '/_app/ai'
+      path: '/ai'
+      fullPath: '/ai'
+      preLoaderRoute: typeof AppAiRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/agentic': {
+      id: '/_app/agentic'
+      path: '/agentic'
+      fullPath: '/agentic'
+      preLoaderRoute: typeof AppAgenticRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/accounting': {
+      id: '/_app/accounting'
+      path: '/accounting'
+      fullPath: '/accounting'
+      preLoaderRoute: typeof AppAccountingRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/settings/merchant': {
@@ -788,31 +1016,43 @@ const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
+  AppAccountingRoute: typeof AppAccountingRoute
+  AppAgenticRoute: typeof AppAgenticRoute
+  AppAiRoute: typeof AppAiRoute
+  AppAmlRoute: typeof AppAmlRoute
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppBnplRoute: typeof AppBnplRoute
   AppCardsRoute: typeof AppCardsRoute
   AppCashFlowRoute: typeof AppCashFlowRoute
+  AppComplianceRoute: typeof AppComplianceRoute
+  AppCopilotRoute: typeof AppCopilotRoute
   AppCrossborderRoute: typeof AppCrossborderRoute
   AppDunningRoute: typeof AppDunningRoute
   AppEinvoicingRoute: typeof AppEinvoicingRoute
   AppEscrowRoute: typeof AppEscrowRoute
   AppEsgRoute: typeof AppEsgRoute
+  AppFraudRoute: typeof AppFraudRoute
+  AppGstAiRoute: typeof AppGstAiRoute
   AppGstInvoicesRoute: typeof AppGstInvoicesRoute
   AppGstReturnsRoute: typeof AppGstReturnsRoute
   AppInsuranceRoute: typeof AppInsuranceRoute
   AppInvoicesRoute: typeof AppInvoicesRoute
   AppItcRoute: typeof AppItcRoute
   AppKybRoute: typeof AppKybRoute
+  AppKycRoute: typeof AppKycRoute
   AppLedgerRoute: typeof AppLedgerRoute
   AppLendingRoute: typeof AppLendingRoute
   AppMandatesRoute: typeof AppMandatesRoute
   AppMarketplaceRoute: typeof AppMarketplaceRoute
   AppMessagingRoute: typeof AppMessagingRoute
+  AppOfflineRoute: typeof AppOfflineRoute
+  AppOndcRoute: typeof AppOndcRoute
   AppOrchestrationRoute: typeof AppOrchestrationRoute
   AppPaymentLinksRoute: typeof AppPaymentLinksRoute
   AppPaymentsRoute: typeof AppPaymentsRoute
   AppPayoutBatchesRoute: typeof AppPayoutBatchesRoute
   AppPayoutsRoute: typeof AppPayoutsRoute
+  AppPayrollRoute: typeof AppPayrollRoute
   AppPlansRoute: typeof AppPlansRoute
   AppReconciliationRoute: typeof AppReconciliationRoute
   AppRefundsRoute: typeof AppRefundsRoute
@@ -826,31 +1066,43 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAccountingRoute: AppAccountingRoute,
+  AppAgenticRoute: AppAgenticRoute,
+  AppAiRoute: AppAiRoute,
+  AppAmlRoute: AppAmlRoute,
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppBnplRoute: AppBnplRoute,
   AppCardsRoute: AppCardsRoute,
   AppCashFlowRoute: AppCashFlowRoute,
+  AppComplianceRoute: AppComplianceRoute,
+  AppCopilotRoute: AppCopilotRoute,
   AppCrossborderRoute: AppCrossborderRoute,
   AppDunningRoute: AppDunningRoute,
   AppEinvoicingRoute: AppEinvoicingRoute,
   AppEscrowRoute: AppEscrowRoute,
   AppEsgRoute: AppEsgRoute,
+  AppFraudRoute: AppFraudRoute,
+  AppGstAiRoute: AppGstAiRoute,
   AppGstInvoicesRoute: AppGstInvoicesRoute,
   AppGstReturnsRoute: AppGstReturnsRoute,
   AppInsuranceRoute: AppInsuranceRoute,
   AppInvoicesRoute: AppInvoicesRoute,
   AppItcRoute: AppItcRoute,
   AppKybRoute: AppKybRoute,
+  AppKycRoute: AppKycRoute,
   AppLedgerRoute: AppLedgerRoute,
   AppLendingRoute: AppLendingRoute,
   AppMandatesRoute: AppMandatesRoute,
   AppMarketplaceRoute: AppMarketplaceRoute,
   AppMessagingRoute: AppMessagingRoute,
+  AppOfflineRoute: AppOfflineRoute,
+  AppOndcRoute: AppOndcRoute,
   AppOrchestrationRoute: AppOrchestrationRoute,
   AppPaymentLinksRoute: AppPaymentLinksRoute,
   AppPaymentsRoute: AppPaymentsRoute,
   AppPayoutBatchesRoute: AppPayoutBatchesRoute,
   AppPayoutsRoute: AppPayoutsRoute,
+  AppPayrollRoute: AppPayrollRoute,
   AppPlansRoute: AppPlansRoute,
   AppReconciliationRoute: AppReconciliationRoute,
   AppRefundsRoute: AppRefundsRoute,

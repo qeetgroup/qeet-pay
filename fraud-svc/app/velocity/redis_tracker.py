@@ -1,9 +1,10 @@
 """Redis-backed sliding-window velocity tracker for fraud scoring.
 
 Production implementation: uses Redis ZADD / ZREMRANGEBYSCORE to maintain
-per-merchant rolling windows. Falls back to the in-process VelocityTracker
-from ``app.scoring`` when Redis is unavailable (QEETPAY_FRAUD_REDIS_URL not set
-or connection refused).
+per-merchant rolling windows, shared across service instances. Falls back to the
+in-process singleton ``VelocityTracker`` from ``app.scoring`` when Redis is
+unavailable (``REDIS_URL`` / legacy ``QEETPAY_FRAUD_REDIS_URL`` not set, or the
+connection is refused).
 
 Redis key schema:
   ``fraud:velocity:{merchant_id}``  — sorted set; score = epoch milliseconds
@@ -53,18 +54,23 @@ class RedisVelocityTracker:
 
 
 def build_tracker(window_seconds: int = 60) -> VelocityCounter:
-    """Return a RedisVelocityTracker if QEETPAY_FRAUD_REDIS_URL is configured,
-    falling back to the in-memory VelocityTracker from app.scoring."""
-    from app.scoring import VelocityTracker
+    """Return a RedisVelocityTracker when a Redis URL is configured, else the
+    shared in-memory ``velocity_tracker`` singleton from ``app.scoring``.
 
-    redis_url = os.getenv("QEETPAY_FRAUD_REDIS_URL")
+    Reads ``REDIS_URL`` first, then the legacy ``QEETPAY_FRAUD_REDIS_URL``.
+    Returning the shared singleton (not a fresh instance) keeps test resets of
+    ``app.scoring.velocity_tracker`` effective in the in-memory fallback path.
+    """
+    from app.scoring import velocity_tracker as shared_tracker
+
+    redis_url = os.getenv("REDIS_URL") or os.getenv("QEETPAY_FRAUD_REDIS_URL")
     if not redis_url:
-        return VelocityTracker(window_seconds=window_seconds)
+        return shared_tracker
 
     try:
         tracker = RedisVelocityTracker(redis_url, window_seconds)
-        # Probe the connection to verify it works at startup
+        # Probe the connection to verify it works at startup.
         tracker._redis.ping()
         return tracker
     except Exception:
-        return VelocityTracker(window_seconds=window_seconds)
+        return shared_tracker

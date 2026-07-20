@@ -34,12 +34,15 @@ def score(req: ScoreRequest) -> ScoreResponse:
         customer_vpa=req.customerVpa,
         merchant_id=req.merchantId,
         method=req.method,
+        ip=req.ip,
     )
     latency_ms = (time.perf_counter() - start) * 1000.0
     return ScoreResponse(
         score=result.score,
         decision=result.decision,
         reasons=result.reasons,
+        explanation=result.explanation,
+        model=result.model,
         latencyMs=round(latency_ms, 3),
     )
 

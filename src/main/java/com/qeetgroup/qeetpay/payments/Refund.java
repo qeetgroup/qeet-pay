@@ -80,6 +80,10 @@ public class Refund {
         return status;
     }
 
+    public String getProviderRefundId() {
+        return providerRefundId;
+    }
+
     public UUID getLedgerEntryId() {
         return ledgerEntryId;
     }

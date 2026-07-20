@@ -19,11 +19,15 @@ import org.springframework.web.client.RestClient;
  * Calls the Python fraud-svc {@code POST /score} (active only when {@code qeetpay.fraud.enabled=true}).
  * Serializes/parses with Jackson explicitly (a String JSON body — robust across RestClient request
  * factories). Fails <em>open</em> — any transport/parse error returns ALLOW so a fraud-service outage
- * never blocks legitimate payments (scoring is advisory; TAD §8).
+ * never blocks legitimate payments (scoring is advisory; TAD §8). Parses the fraud-svc explainable
+ * output ({@code explanation[]} + {@code model}, TAD §8.4) onto the {@link FraudDecision}.
+ *
+ * <p>This is the low-level {@link FraudScorer} (the deterministic path); {@link AiGatewayFraudClient}
+ * wraps it with the §6.4 safety substrate.
  */
 @Component
 @ConditionalOnProperty(name = "qeetpay.fraud.enabled", havingValue = "true")
-public class HttpFraudClient implements FraudClient {
+public class HttpFraudClient implements FraudScorer {
 
     private static final Logger log = LoggerFactory.getLogger(HttpFraudClient.class);
 
@@ -53,6 +57,9 @@ public class HttpFraudClient implements FraudClient {
             if (check.customerVpa() != null) {
                 req.put("customerVpa", check.customerVpa());
             }
+            if (check.ip() != null) {
+                req.put("ip", check.ip());
+            }
 
             String responseJson =
                     http.post()
@@ -68,7 +75,24 @@ public class HttpFraudClient implements FraudClient {
             JsonNode n = objectMapper.readTree(responseJson);
             List<String> reasons = new ArrayList<>();
             n.path("reasons").forEach(r -> reasons.add(r.asText()));
-            return new FraudDecision(n.path("score").asInt(0), parse(n.path("decision").asText("allow")), reasons);
+
+            List<FraudReason> topReasons = new ArrayList<>();
+            for (JsonNode e : n.path("explanation")) {
+                topReasons.add(
+                        new FraudReason(
+                                e.path("feature").asText(""),
+                                e.path("contribution").asDouble(0.0),
+                                e.path("value").asDouble(0.0),
+                                e.path("reason").asText("")));
+            }
+            String model = n.path("model").asText("rules");
+
+            return new FraudDecision(
+                    n.path("score").asInt(0),
+                    parse(n.path("decision").asText("allow")),
+                    reasons,
+                    topReasons,
+                    model);
         } catch (Exception e) {
             log.warn("fraud scoring failed; failing open (allow)", e);
             return FraudDecision.allow("fraud service unavailable");

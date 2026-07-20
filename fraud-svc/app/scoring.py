@@ -1,16 +1,23 @@
-"""Deterministic, rules-based fraud-scoring stub for qeet-pay.
+"""Fraud-scoring engine for qeet-pay (TAD Module 08.1/8.4).
 
-This is the Phase-1 placeholder for TAD Module 08 (fraud scoring). It combines a
-handful of explainable signals into a 0-100 risk score and maps that score to an
-allow / challenge / block decision. Every signal that fires is returned in
-``reasons`` so the decision is fully explainable (TAD section 8.2).
+The scorer combines three layers, all resolved at request time:
 
-# TODO: replace with XGBoost/LightGBM + ONNX (TAD section 8.1)
-#   The production model loads a trained gradient-boosted tree exported to ONNX,
-#   builds a feature vector (amount, velocity, device, geo-IP, VPA reputation,
-#   merchant-category risk, ...) from Redis-backed velocity features + the request,
-#   runs inference via onnxruntime, and calibrates the raw probability to 0-100.
-#   The rules below remain only as a transparent fallback / cold-start scorer.
+* **Model path (when ``FRAUD_MODEL_PATH`` is set).** A gradient-boosted tree
+  exported to ONNX is loaded (:mod:`app.model.predict`) and run over the
+  normalised feature vector (:mod:`app.model.features`). Its calibrated 0-100
+  probability is the score.
+* **Rules path (default / cold-start / CI).** When no ONNX model is present the
+  transparent, deterministic rules below produce the score. They combine a
+  handful of explainable signals (amount, missing VPA, merchant velocity) and
+  return every signal that fired in ``reasons`` (TAD §8.2).
+* **Explainability (always on).** Regardless of which path scored the payment,
+  a deterministic SHAP-style contribution list is attached via
+  :mod:`app.model.baseline` — the RBI-audit-friendly "top contributing features"
+  with plain-English reason strings (TAD §8.4 Explainable AI).
+
+Velocity features come from Redis when ``REDIS_URL`` (or the legacy
+``QEETPAY_FRAUD_REDIS_URL``) is set — shared across instances — otherwise from
+the in-process sliding-window counter below (:class:`VelocityTracker`).
 """
 
 from __future__ import annotations
@@ -19,6 +26,9 @@ import threading
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
+
+from app.model import baseline, features
+from app.model.predict import score_with_features
 
 # ---------------------------------------------------------------------------
 # Tunable constants (would move to config / feature store in production)
@@ -79,12 +89,40 @@ class VelocityTracker:
 # Module-level singleton shared by the FastAPI app.
 velocity_tracker = VelocityTracker()
 
+# Scoring-path labels surfaced on the response ``model`` field.
+MODEL_ONNX = "onnx"
+MODEL_RULES = "rules"
+
+# Structural type: any counter with record_and_count/reset (in-memory or Redis).
+VelocityCounterLike = VelocityTracker
+
+# The velocity counter the request path uses: Redis when configured, else the
+# in-memory singleton above. Built lazily on first use and cached.
+_configured_tracker: VelocityCounterLike | None = None
+
+
+def _get_tracker() -> "VelocityCounterLike":
+    """Return the configured velocity tracker (Redis if available, else in-memory).
+
+    Imported lazily to avoid a hard dependency on ``redis`` in CI. The in-memory
+    fallback is the shared :data:`velocity_tracker` singleton, so test resets of
+    that singleton continue to work.
+    """
+    global _configured_tracker
+    if _configured_tracker is None:
+        from app.velocity.redis_tracker import build_tracker
+
+        _configured_tracker = build_tracker(window_seconds=VELOCITY_WINDOW_SECONDS)
+    return _configured_tracker
+
 
 @dataclass
 class ScoreResult:
     score: int
     decision: str
     reasons: list[str]
+    explanation: list[dict] = field(default_factory=list)
+    model: str = MODEL_RULES
 
 
 def _decision_for(score: int) -> str:
@@ -95,20 +133,17 @@ def _decision_for(score: int) -> str:
     return "block"
 
 
-def score_payment(
-    *,
+def _rules_score(
     amount_minor: int,
     customer_vpa: str | None,
-    merchant_id: str,
-    method: str | None = None,
-    tracker: VelocityTracker | None = None,
-) -> ScoreResult:
-    """Compute a deterministic risk score for a payment.
+    count: int,
+    window_seconds: int,
+) -> tuple[int, list[str]]:
+    """The transparent rules scorer (TAD §8.2). Returns ``(score, reasons)``.
 
-    Returns a :class:`ScoreResult` with a 0-100 ``score`` (higher = riskier),
-    a ``decision`` and the list of contributing ``reasons``.
+    ``count`` is the in-window merchant payment count (already recorded by the
+    caller so the model and rules paths share one velocity read).
     """
-    tracker = tracker or velocity_tracker
     reasons: list[str] = []
     score = 0
 
@@ -131,18 +166,74 @@ def score_payment(
         reasons.append("missing or blank customerVpa")
 
     # --- Signal: merchant velocity -------------------------------------------
-    count = tracker.record_and_count(merchant_id)
     if count > VELOCITY_FREE_COUNT:
         over = count - VELOCITY_FREE_COUNT
         contribution = min(over * W_VELOCITY_PER_OVER, W_VELOCITY_MAX)
         score += contribution
         reasons.append(
             f"merchant velocity: {count} payments in last "
-            f"{tracker.window_seconds}s (threshold {VELOCITY_FREE_COUNT})"
+            f"{window_seconds}s (threshold {VELOCITY_FREE_COUNT})"
         )
 
     score = max(0, min(100, score))
-    decision = _decision_for(score)
     if not reasons:
         reasons.append("no risk signals triggered")
-    return ScoreResult(score=score, decision=decision, reasons=reasons)
+    return score, reasons
+
+
+def score_payment(
+    *,
+    amount_minor: int,
+    customer_vpa: str | None,
+    merchant_id: str,
+    method: str | None = None,
+    ip: str | None = None,
+    tracker: "VelocityCounterLike | None" = None,
+) -> ScoreResult:
+    """Compute a risk score + explanation for a payment.
+
+    Uses the ONNX model when ``FRAUD_MODEL_PATH`` is set, otherwise the
+    deterministic rules. Either way a SHAP-style ``explanation`` is attached.
+
+    Returns a :class:`ScoreResult` with a 0-100 ``score`` (higher = riskier),
+    a ``decision``, the contributing ``reasons``, the ``explanation`` (top
+    contributing features) and the ``model`` that produced the score.
+    """
+    tracker = tracker if tracker is not None else _get_tracker()
+
+    # One velocity read shared by both the feature vector and the rules path.
+    count = tracker.record_and_count(merchant_id)
+
+    fv = features.extract(
+        amount_minor=amount_minor,
+        customer_vpa=customer_vpa,
+        merchant_id=merchant_id,
+        method=method,
+        velocity_1m=count,
+        ip=ip,
+    )
+
+    # --- Model path (ONNX) with graceful fallback to the rules ---------------
+    prediction = score_with_features(fv)
+    if prediction is not None:
+        score = prediction.score
+        decision = prediction.decision
+        reasons = prediction.reasons or ["model score"]
+        model = MODEL_ONNX
+    else:
+        score, reasons = _rules_score(
+            amount_minor, customer_vpa, count, getattr(tracker, "window_seconds", VELOCITY_WINDOW_SECONDS)
+        )
+        decision = _decision_for(score)
+        model = MODEL_RULES
+
+    # --- Explainability (always on) -----------------------------------------
+    explanation = baseline.explain(fv, amount_minor=amount_minor, method=method)
+
+    return ScoreResult(
+        score=score,
+        decision=decision,
+        reasons=reasons,
+        explanation=explanation,
+        model=model,
+    )

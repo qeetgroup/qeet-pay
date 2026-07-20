@@ -1,19 +1,25 @@
 import {
   BanknoteIcon,
   BarChart3Icon,
+  BotIcon,
   BuildingIcon,
+  CalculatorIcon,
   CalendarClockIcon,
   CreditCardIcon,
   FileCheck2Icon,
   FileTextIcon,
+  FingerprintIcon,
   GaugeIcon,
   GlobeIcon,
   HandCoinsIcon,
+  HeartPulseIcon,
+  KeyRoundIcon,
   LandmarkIcon,
   LayoutDashboardIcon,
   LeafIcon,
   LinkIcon,
   MessagesSquareIcon,
+  NetworkIcon,
   PiggyBankIcon,
   ReceiptIcon,
   RefreshCwIcon,
@@ -21,11 +27,17 @@ import {
   RouteIcon,
   ScaleIcon,
   Settings2Icon,
+  ShieldAlertIcon,
   ShieldCheckIcon,
+  SmartphoneIcon,
+  SparklesIcon,
   SplitIcon,
+  TagsIcon,
   TrendingUpIcon,
   UmbrellaIcon,
+  UserCheckIcon,
   UsersIcon,
+  WalletIcon,
   WebhookIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -43,11 +55,17 @@ export type NavGroup = {
   items: NavItem[];
 };
 
+// Domain-grouped navigation registry. Only routes whose files exist today are
+// listed; the grouping establishes stable slots so new backend modules drop
+// into the right section without reshuffling. `url`s must match the file-based
+// routes under src/routes/_app.
 export const navGroups: NavGroup[] = [
   {
     label: "Overview",
     items: [
-      { title: "Dashboard", url: "/", icon: <LayoutDashboardIcon />, isActive: true },
+      { title: "Dashboard", url: "/", icon: <LayoutDashboardIcon /> },
+      { title: "Compliance Health", url: "/compliance", icon: <HeartPulseIcon /> },
+      { title: "Copilot", url: "/copilot", icon: <SparklesIcon /> },
       { title: "Analytics", url: "/analytics", icon: <BarChart3Icon /> },
       { title: "Cash Flow", url: "/cash-flow", icon: <TrendingUpIcon /> },
     ],
@@ -57,15 +75,17 @@ export const navGroups: NavGroup[] = [
     items: [
       { title: "Payments", url: "/payments", icon: <CreditCardIcon /> },
       { title: "Payment Links", url: "/payment-links", icon: <LinkIcon /> },
+      { title: "Offline & Rural", url: "/offline", icon: <SmartphoneIcon /> },
       { title: "Refunds", url: "/refunds", icon: <RefreshCwIcon /> },
       { title: "Orchestration", url: "/orchestration", icon: <RouteIcon /> },
     ],
   },
   {
-    label: "Payouts & Money",
+    label: "Payouts & Ledger",
     items: [
       { title: "Payouts", url: "/payouts", icon: <BanknoteIcon /> },
       { title: "Bulk Batches", url: "/payout-batches", icon: <UsersIcon /> },
+      { title: "Payroll", url: "/payroll", icon: <WalletIcon /> },
       { title: "Ledger", url: "/ledger", icon: <ScaleIcon /> },
       { title: "Reconciliation", url: "/reconciliation", icon: <FileCheck2Icon /> },
       { title: "Revenue Recognition", url: "/revrec", icon: <CalendarClockIcon /> },
@@ -82,11 +102,12 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "GST & Tax",
+    label: "Tax & GST",
     items: [
       { title: "GST Invoices", url: "/gst-invoices", icon: <ReceiptIcon /> },
       { title: "E-Invoicing (IRN)", url: "/einvoicing", icon: <FileCheck2Icon /> },
       { title: "GST Returns", url: "/gst-returns", icon: <FileTextIcon /> },
+      { title: "GST AI", url: "/gst-ai", icon: <TagsIcon /> },
       { title: "ITC / GSTR-2B", url: "/itc", icon: <ScaleIcon /> },
       { title: "TDS / TCS", url: "/tds", icon: <LandmarkIcon /> },
     ],
@@ -109,18 +130,30 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Growth",
+    label: "Marketplace",
     items: [
       { title: "Marketplace", url: "/marketplace", icon: <SplitIcon /> },
+      { title: "ONDC", url: "/ondc", icon: <NetworkIcon /> },
       { title: "Messaging", url: "/messaging", icon: <MessagesSquareIcon /> },
       { title: "ESG / Carbon", url: "/esg", icon: <LeafIcon /> },
     ],
   },
   {
-    label: "Compliance",
+    label: "Risk & Compliance",
     items: [
       { title: "KYB", url: "/kyb", icon: <ShieldCheckIcon /> },
+      { title: "Customer KYC", url: "/kyc", icon: <UserCheckIcon /> },
+      { title: "AML / CFT", url: "/aml", icon: <ShieldAlertIcon /> },
+      { title: "Fraud", url: "/fraud", icon: <FingerprintIcon /> },
+    ],
+  },
+  {
+    label: "Developer",
+    items: [
       { title: "Webhooks", url: "/webhooks", icon: <WebhookIcon /> },
+      { title: "Accounting", url: "/accounting", icon: <CalculatorIcon /> },
+      { title: "AI Audit", url: "/ai", icon: <BotIcon /> },
+      { title: "Agentic", url: "/agentic", icon: <KeyRoundIcon /> },
     ],
   },
   {

@@ -25,6 +25,20 @@ class ScoreRequest(BaseModel):
     ip: str | None = Field(default=None, description="Client IP address.")
 
 
+class FeatureContribution(BaseModel):
+    """One explainable, RBI-audit-friendly feature contribution to the score.
+
+    A deterministic SHAP-style attribution: ``contribution`` is the signed
+    risk-points this feature added (positive) or removed (negative), ``value`` is
+    the normalised feature value, and ``reason`` is a plain-English explanation.
+    """
+
+    feature: str = Field(..., description="Feature name, e.g. missing_vpa.")
+    contribution: float = Field(..., description="Signed risk-points contributed.")
+    value: float = Field(..., description="Normalised feature value.")
+    reason: str = Field(..., description="Plain-English, audit-friendly explanation.")
+
+
 class ScoreResponse(BaseModel):
     """The scoring decision returned to the payment engine."""
 
@@ -32,6 +46,14 @@ class ScoreResponse(BaseModel):
     decision: Literal["allow", "challenge", "block"]
     reasons: list[str] = Field(
         default_factory=list, description="Explainable signals that fired."
+    )
+    explanation: list[FeatureContribution] = Field(
+        default_factory=list,
+        description="Deterministic SHAP-style top contributing features (Explainable AI).",
+    )
+    model: str = Field(
+        default="rules",
+        description="Scoring model that produced the score: 'onnx' | 'rules'.",
     )
     latencyMs: float = Field(..., ge=0, description="Server-side scoring latency in ms.")
 

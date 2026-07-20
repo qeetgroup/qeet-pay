@@ -21,10 +21,15 @@ public class AnalyticsController {
 
     private final AnalyticsQueryService query;
     private final CashFlowForecastService forecast;
+    private final ComplianceHealthService complianceHealth;
 
-    public AnalyticsController(AnalyticsQueryService query, CashFlowForecastService forecast) {
+    public AnalyticsController(
+            AnalyticsQueryService query,
+            CashFlowForecastService forecast,
+            ComplianceHealthService complianceHealth) {
         this.query = query;
         this.forecast = forecast;
+        this.complianceHealth = complianceHealth;
     }
 
     @GetMapping("/tpv")
@@ -64,6 +69,18 @@ public class AnalyticsController {
             @RequestParam(defaultValue = "30") int horizonDays,
             @RequestParam(defaultValue = "30") int windowDays) {
         return forecast.forecast(MerchantContext.require(), horizonDays, windowDays);
+    }
+
+    /**
+     * Unified Merchant Financial-Health &amp; Compliance Dashboard (PRD Module 12.6): a single-screen
+     * composition of settlement/nodal reconciliation health, GSTR filing status, fraud posture,
+     * KYB/onboarding status, and headline financial KPIs. Read-only; each tile carries an {@code asOf}.
+     * {@code windowDays} (default 30, 1–365) sets the trailing window for the TPV / success-rate KPIs.
+     */
+    @GetMapping("/compliance-health")
+    public ComplianceHealthService.ComplianceHealth complianceHealth(
+            @RequestParam(defaultValue = "30") int windowDays) {
+        return complianceHealth.compose(MerchantContext.require(), windowDays);
     }
 
     public record ArrView(long mrrMinor, long arrMinor) {}

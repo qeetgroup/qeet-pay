@@ -1,22 +1,25 @@
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
   DataState,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  cn,
 } from "@qeetrix/ui";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { LandmarkIcon, TrendingUpIcon, WalletIcon } from "lucide-react";
 import { useState } from "react";
+import { Area, AreaChart, CartesianGrid, ReferenceLine, XAxis, YAxis } from "recharts";
 
+import { buildChartConfig, inrCompact } from "@/components/chart-kit";
 import { PageHeader } from "@/components/page-header";
+import { SectionCard } from "@/components/section-card";
+import { KpiRow, KpiTile } from "@/components/stat-tile";
 import { api } from "@/lib/api";
 import { formatInr } from "@/lib/money";
 
@@ -34,35 +37,6 @@ type CashFlowForecast = {
 
 const DAY_OPTIONS = ["7", "14", "30", "60", "90"];
 
-function StatCard({
-  icon,
-  title,
-  value,
-  sub,
-  iconClass = "bg-primary/10 text-primary",
-}: {
-  icon: React.ReactNode;
-  title: string;
-  value: string | number;
-  sub?: string;
-  iconClass?: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="flex items-center gap-4 pt-6">
-        <div className={`grid size-10 shrink-0 place-items-center rounded-lg [&_svg]:size-5 ${iconClass}`}>
-          {icon}
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-2xl font-semibold tabular-nums">{value}</p>
-          <p className="text-sm text-muted-foreground">{title}</p>
-          {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function CashFlowPage() {
   const [horizonDays, setHorizonDays] = useState("30");
   const [windowDays, setWindowDays] = useState("30");
@@ -78,11 +52,16 @@ function CashFlowPage() {
 
   const data = forecastQ.data;
   const points = data?.points ?? [];
-  const maxAbs = Math.max(1, ...points.map((p) => Math.abs(p.projectedBalanceMinor)));
+  const chartData = points.map((p) => ({
+    label: new Date(p.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" }),
+    balance: p.projectedBalanceMinor / 100,
+  }));
+  const hasNegative = points.some((p) => p.projectedBalanceMinor < 0);
   const healthy = (data?.avgDailyNetMinor ?? 0) > 0 && (data?.projectedEndBalanceMinor ?? 0) >= 0;
+  const config = buildChartConfig([{ key: "balance", label: "Projected balance" }]);
 
   return (
-    <div className="flex min-w-0 flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-5">
       <PageHeader
         description="Settlement-balance projection from the ledger and trailing net payment volume, with a working-capital recommendation."
         actions={
@@ -115,95 +94,100 @@ function CashFlowPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard
-          icon={<WalletIcon />}
-          title="Starting balance"
+      <KpiRow cols={3}>
+        <KpiTile
+          label="Starting balance"
           value={formatInr(data?.startingBalanceMinor ?? 0)}
-          sub="Current settlement balance"
+          icon={WalletIcon}
+          tone="brand"
+          hint="Current settlement balance"
+          loading={forecastQ.isLoading}
         />
-        <StatCard
-          icon={<TrendingUpIcon />}
-          title="Avg daily net"
+        <KpiTile
+          label="Avg daily net"
           value={formatInr(data?.avgDailyNetMinor ?? 0)}
-          sub={`Trailing ${windowDays}-day window`}
-          iconClass={
-            (data?.avgDailyNetMinor ?? 0) >= 0
-              ? "bg-green-500/10 text-green-600 dark:text-green-400"
-              : "bg-red-500/10 text-red-600 dark:text-red-400"
-          }
+          icon={TrendingUpIcon}
+          tone={(data?.avgDailyNetMinor ?? 0) >= 0 ? "success" : "danger"}
+          hint={`Trailing ${windowDays}-day window`}
+          loading={forecastQ.isLoading}
         />
-        <StatCard
-          icon={<LandmarkIcon />}
-          title={`Projected (${horizonDays}d)`}
+        <KpiTile
+          label={`Projected · ${horizonDays}d`}
           value={formatInr(data?.projectedEndBalanceMinor ?? 0)}
-          sub="Balance at end of horizon"
-          iconClass={
-            (data?.projectedEndBalanceMinor ?? 0) >= 0
-              ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
-              : "bg-red-500/10 text-red-600 dark:text-red-400"
-          }
+          icon={LandmarkIcon}
+          tone={(data?.projectedEndBalanceMinor ?? 0) >= 0 ? "info" : "danger"}
+          hint="Balance at end of horizon"
+          loading={forecastQ.isLoading}
         />
-      </div>
+      </KpiRow>
 
       {data?.recommendation && (
         <div
-          className={`rounded-lg border p-4 text-sm ${
+          className={cn(
+            "rounded-xl border p-4 text-sm",
             healthy
-              ? "border-green-500/20 bg-green-500/5 text-green-700 dark:text-green-300"
-              : "border-amber-500/20 bg-amber-500/5 text-amber-700 dark:text-amber-300"
-          }`}
+              ? "border-success/25 bg-success/5"
+              : "border-warning/25 bg-warning/5",
+          )}
         >
-          <p className="font-medium">Recommendation</p>
-          <p className="mt-1 text-foreground/80">{data.recommendation}</p>
+          <p className={cn("font-medium", healthy ? "text-success" : "text-warning")}>Recommendation</p>
+          <p className="mt-1 leading-relaxed text-foreground/80">{data.recommendation}</p>
         </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Projected Settlement Balance</CardTitle>
-          <CardDescription>Day-by-day balance over the next {horizonDays} days</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DataState
-            isLoading={forecastQ.isLoading}
-            isError={forecastQ.isError}
-            error={forecastQ.error}
-            isEmpty={points.length === 0}
-            emptyIcon={TrendingUpIcon}
-            emptyTitle="No projection available"
-            emptyDescription="There is no ledger or payment history to project from yet."
-            skeletonRows={8}
-          >
-            <div className="max-h-[28rem] space-y-1.5 overflow-y-auto">
-              {points.map((p) => {
-                const pct = Math.round((Math.abs(p.projectedBalanceMinor) / maxAbs) * 100);
-                const negative = p.projectedBalanceMinor < 0;
-                return (
-                  <div key={p.day} className="flex items-center gap-3">
-                    <span className="w-24 shrink-0 text-xs text-muted-foreground tabular-nums">
-                      {new Date(p.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
-                    </span>
-                    <div className="h-3 flex-1 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className={`h-full rounded-full transition-all ${negative ? "bg-red-500" : "bg-primary"}`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <span
-                      className={`w-28 shrink-0 text-right text-xs font-medium tabular-nums ${
-                        negative ? "text-red-600 dark:text-red-400" : ""
-                      }`}
-                    >
-                      {formatInr(p.projectedBalanceMinor)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </DataState>
-        </CardContent>
-      </Card>
+      <SectionCard
+        title="Projected settlement balance"
+        description={`Day-by-day balance over the next ${horizonDays} days`}
+      >
+        <DataState
+          isLoading={forecastQ.isLoading}
+          isError={forecastQ.isError}
+          error={forecastQ.error}
+          isEmpty={chartData.length === 0}
+          emptyIcon={TrendingUpIcon}
+          emptyTitle="No projection available"
+          emptyDescription="There is no ledger or payment history to project from yet."
+          skeletonRows={8}
+        >
+          <ChartContainer config={config} className="h-80 w-full">
+            <AreaChart data={chartData} margin={{ left: 4, right: 8, top: 8, bottom: 0 }}>
+              <defs>
+                <linearGradient id="fillCashflow" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--color-balance)" stopOpacity={0.26} />
+                  <stop offset="100%" stopColor="var(--color-balance)" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid vertical={false} strokeDasharray="3 3" />
+              <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={10} minTickGap={32} />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                width={56}
+                tickFormatter={(v) => inrCompact(Number(v) * 100)}
+              />
+              {hasNegative && <ReferenceLine y={0} stroke="var(--color-destructive)" strokeDasharray="4 4" />}
+              <ChartTooltip
+                cursor={{ stroke: "var(--color-border)", strokeWidth: 1 }}
+                content={
+                  <ChartTooltipContent
+                    indicator="dot"
+                    formatter={(value) => (
+                      <span className="font-medium tabular-nums">{formatInr(Number(value) * 100)}</span>
+                    )}
+                  />
+                }
+              />
+              <Area
+                dataKey="balance"
+                type="monotone"
+                stroke="var(--color-balance)"
+                strokeWidth={2}
+                fill="url(#fillCashflow)"
+              />
+            </AreaChart>
+          </ChartContainer>
+        </DataState>
+      </SectionCard>
     </div>
   );
 }

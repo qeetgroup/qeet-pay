@@ -172,7 +172,10 @@ function PayFlow({ code, session }: { code: string; session: CheckoutSession }) 
         </Button>
       </form>
 
-      <p className="text-muted-foreground text-center text-xs">{t("secured")}</p>
+      <p className="text-muted-foreground flex items-center justify-center gap-1.5 text-center text-xs">
+        <LockIcon />
+        {t("secured")}
+      </p>
     </CheckoutCard>
   );
 }
@@ -193,12 +196,12 @@ function ReceiptCard({
       subtitle={t("success.subtitle", { merchant: session.merchantName })}
     >
       <div className="flex justify-center">
-        <span className="bg-success/15 text-success flex size-14 items-center justify-center rounded-full">
+        <span className="pay-pop bg-success/15 text-success ring-success/20 flex size-16 items-center justify-center rounded-full ring-8">
           <CheckIcon />
         </span>
       </div>
 
-      <dl className="border-border/60 divide-border/60 divide-y rounded-lg border text-sm">
+      <dl className="border-border/60 divide-border/60 divide-y rounded-xl border text-sm">
         <Row label={t("success.amountLabel")}>
           <span className="font-semibold">{formatMoney(amountMinor, session.currency)}</span>
         </Row>
@@ -269,10 +272,28 @@ function CheckIcon() {
       strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="size-7"
+      className="size-8"
       aria-hidden
     >
       <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-3.5"
+      aria-hidden
+    >
+      <rect x="4" y="11" width="16" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
     </svg>
   );
 }

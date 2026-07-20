@@ -23,9 +23,9 @@ type PaymentMethodSelectProps = {
 export function PaymentMethodSelect({ value, onChange, disabled }: PaymentMethodSelectProps) {
   const { t } = useTranslation("checkout");
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <span className="text-sm font-medium">{t("method.label")}</span>
-      <div role="radiogroup" aria-label={t("method.label")} className="grid grid-cols-2 gap-2">
+      <div role="radiogroup" aria-label={t("method.label")} className="grid grid-cols-2 gap-2.5">
         {PAYMENT_METHODS.map((method) => {
           const active = method === value;
           const Icon = METHOD_ICONS[method];
@@ -38,16 +38,30 @@ export function PaymentMethodSelect({ value, onChange, disabled }: PaymentMethod
               disabled={disabled}
               onClick={() => onChange(method)}
               className={cn(
-                "flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm font-medium transition",
+                "group relative flex items-center gap-2.5 rounded-xl border px-3.5 py-3 text-sm font-medium transition-all duration-200",
                 "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
                 "disabled:cursor-not-allowed disabled:opacity-60",
                 active
-                  ? "border-primary ring-primary/30 bg-primary/5 ring-2"
-                  : "border-border/60 hover:bg-muted/50",
+                  ? "border-primary bg-primary/5 ring-2 ring-primary/25 shadow-sm"
+                  : "border-border/70 hover:border-border hover:bg-muted/50",
               )}
             >
-              <Icon className={cn("size-5 shrink-0", active ? "text-primary" : "text-muted-foreground")} />
+              <span
+                className={cn(
+                  "grid size-8 shrink-0 place-items-center rounded-lg transition-colors",
+                  active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+                )}
+              >
+                <Icon className="size-[1.05rem]" />
+              </span>
               {t(`method.${method}`)}
+              {active && (
+                <span className="absolute inset-e-2.5 top-2.5 grid size-4 place-items-center rounded-full bg-primary text-primary-foreground">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="size-2.5" aria-hidden>
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                </span>
+              )}
             </button>
           );
         })}
