@@ -9,12 +9,14 @@ import org.springframework.context.annotation.Configuration;
 public class FraudConfig {
 
     /**
-     * Fallback used when the real HTTP client is not active ({@code qeetpay.fraud.enabled=false},
-     * the default in dev/test): every check is allowed.
+     * Fallback low-level scorer used when the real HTTP client is not active
+     * ({@code qeetpay.fraud.enabled=false}, the default in dev/test): every check is allowed. The
+     * {@link AiGatewayFraudClient} still wraps this so the allow decision is masked, audited and
+     * persisted through the §6.4 gateway like any other.
      */
     @Bean
-    @ConditionalOnMissingBean(FraudClient.class)
-    public FraudClient allowAllFraudClient() {
+    @ConditionalOnMissingBean(FraudScorer.class)
+    public FraudScorer allowAllFraudScorer() {
         return check -> FraudDecision.allow("fraud scoring disabled");
     }
 }

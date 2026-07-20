@@ -28,16 +28,29 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
   TimeSince,
   cn,
 } from "@qeetrix/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { GlobeIcon, PlusIcon, ReceiptIcon } from "lucide-react";
+import {
+  ArrowDownLeftIcon,
+  ArrowUpRightIcon,
+  GlobeIcon,
+  PlusIcon,
+  ReceiptIcon,
+  SendIcon,
+} from "lucide-react";
 import { useState } from "react";
 
 import { ListToolbar, SortHeader } from "@/components/data-table";
 import { PageHeader } from "@/components/page-header";
+import { DetailRow, FormError, MoneyField, TextField } from "@/features/finance/shared";
+import { FormSheet } from "@/features/gst/ui";
 import { ApiError, api } from "@/lib/api";
 import { exportToCsv, exportToJson } from "@/lib/export";
 import { useListView } from "@/lib/list-view";
@@ -93,6 +106,30 @@ function errMsg(e: unknown): string {
 }
 
 function CrossBorderPage() {
+  return (
+    <div className="flex min-w-0 flex-col gap-4">
+      <PageHeader description="Foreign-currency cross-border flows — inbound export receipts (LUT / FEMA purpose code + FIRA) and outbound import remittances (SWIFT + LRS tracking + 2.5% TCS)." />
+      <Tabs defaultValue="inbound">
+        <TabsList>
+          <TabsTrigger value="inbound">
+            <ArrowDownLeftIcon /> Inbound (export)
+          </TabsTrigger>
+          <TabsTrigger value="outbound">
+            <ArrowUpRightIcon /> Outbound (import)
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="inbound" className="mt-4">
+          <InboundTab />
+        </TabsContent>
+        <TabsContent value="outbound" className="mt-4">
+          <OutboundTab />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function InboundTab() {
   const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -155,17 +192,14 @@ function CrossBorderPage() {
     minor > 0;
 
   return (
-    <div className="flex min-w-0 flex-col gap-4">
-      <PageHeader
-        description="Raise foreign-currency export invoices (LUT / FEMA purpose code) and record inward remittances FX-converted to INR with a FIRA reference."
-        actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <PlusIcon /> Create export invoice
-          </Button>
-        }
-      />
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <Button onClick={() => setCreateOpen(true)}>
+          <PlusIcon /> Create export invoice
+        </Button>
+      </div>
 
-      <Card className="py-0">
+      <Card className="overflow-hidden py-0">
         <ListToolbar
           search={lv.search}
           onSearchChange={lv.setSearch}
@@ -516,5 +550,416 @@ function InvoiceDetail({ invoiceId }: { invoiceId: string }) {
         </SheetFooter>
       )}
     </div>
+  );
+}
+
+// ── Outbound (import) ─────────────────────────────────────────────────────────
+
+type OutboundStatus = "INITIATED" | "REMITTED" | "FAILED";
+
+type OutRemittance = {
+  id: string;
+  beneficiaryName: string;
+  beneficiarySwift: string;
+  beneficiaryCountry: string;
+  purposeCode: string;
+  currency: string;
+  foreignAmountMinor: number;
+  fxRate: number | string;
+  principalInrMinor: number;
+  tcsMinor: number;
+  inrDebitedMinor: number;
+  financialYear: string;
+  lrsCumulativeAfterMinor: number;
+  status: OutboundStatus;
+  ledgerEntryId: string;
+  remittanceReference: string | null;
+  createdAt: string;
+};
+
+type OutQuote = {
+  currency: string;
+  foreignAmountMinor: number;
+  fxRate: number | string;
+  principalInrMinor: number;
+  financialYear: string;
+  lrsCumulativeBeforeMinor: number;
+  lrsThresholdMinor: number;
+  tcsMinor: number;
+  tcsBps: number;
+  inrDebitedMinor: number;
+};
+
+type OutEvent = { id: string; type: string; amountMinor: number; note: string | null; createdAt: string };
+type OutDetail = { remittance: OutRemittance; events: OutEvent[] };
+
+function outStatusBadge(status: OutboundStatus) {
+  if (status === "REMITTED") return <Badge variant="success">Remitted</Badge>;
+  if (status === "FAILED") return <Badge variant="destructive">Failed</Badge>;
+  return <Badge variant="warning">Initiated</Badge>;
+}
+
+function OutboundTab() {
+  const [createOpen, setCreateOpen] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
+
+  const listQ = useQuery({
+    queryKey: ["outbound-remittances"],
+    queryFn: () => api<OutRemittance[]>("/v1/crossborder/outbound"),
+    staleTime: 15_000,
+  });
+
+  const rows = listQ.data ?? [];
+  const lv = useListView(rows, {
+    searchFields: (r) => [r.beneficiaryName, r.beneficiarySwift, r.beneficiaryCountry, r.purposeCode, r.currency],
+    filterFields: { status: (r) => r.status, currency: (r) => r.currency },
+    sortFields: { debited: (r) => r.inrDebitedMinor, createdAt: (r) => r.createdAt },
+  });
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <Button onClick={() => setCreateOpen(true)}>
+          <SendIcon /> New remittance
+        </Button>
+      </div>
+
+      <Card className="overflow-hidden py-0">
+        <ListToolbar
+          search={lv.search}
+          onSearchChange={lv.setSearch}
+          searchPlaceholder="Search beneficiary, SWIFT, purpose…"
+          filters={[
+            {
+              id: "status",
+              label: "Status",
+              value: lv.filters.status ?? "",
+              options: [
+                { label: "Initiated", value: "INITIATED" },
+                { label: "Remitted", value: "REMITTED" },
+                { label: "Failed", value: "FAILED" },
+              ],
+              onChange: (v) => lv.setFilter("status", v),
+            },
+            {
+              id: "currency",
+              label: "Currency",
+              value: lv.filters.currency ?? "",
+              options: FOREIGN_CURRENCIES.map((c) => ({ label: c, value: c })),
+              onChange: (v) => lv.setFilter("currency", v),
+            },
+          ]}
+          density={lv.density}
+          onDensityChange={lv.setDensity}
+          hasActiveFilters={lv.hasActiveFilters}
+          onClear={lv.clear}
+          exportDisabled={lv.view.length === 0}
+          onExport={(fmt) =>
+            fmt === "csv"
+              ? exportToCsv("outbound-remittances", lv.view, [
+                  { header: "Beneficiary", value: (r) => r.beneficiaryName },
+                  { header: "SWIFT", value: (r) => r.beneficiarySwift },
+                  { header: "Country", value: (r) => r.beneficiaryCountry },
+                  { header: "Currency", value: (r) => r.currency },
+                  { header: "Foreign amount (minor)", value: (r) => r.foreignAmountMinor },
+                  { header: "INR debited (minor)", value: (r) => r.inrDebitedMinor },
+                  { header: "TCS (minor)", value: (r) => r.tcsMinor },
+                  { header: "Status", value: (r) => r.status },
+                ])
+              : exportToJson("outbound-remittances", lv.view)
+          }
+        />
+        <CardContent className="p-0">
+          <DataState
+            isLoading={listQ.isLoading}
+            isError={listQ.isError}
+            error={listQ.error}
+            isEmpty={lv.view.length === 0}
+            emptyIcon={GlobeIcon}
+            emptyTitle="No outbound remittances"
+            emptyDescription="Pay a foreign vendor via SWIFT; LRS usage and TCS are tracked per financial year."
+            skeletonRows={5}
+          >
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Beneficiary</TableHead>
+                  <TableHead className="text-right">Foreign amount</TableHead>
+                  <TableHead className="text-right">INR debited</TableHead>
+                  <TableHead className="text-right">TCS</TableHead>
+                  <TableHead>Status</TableHead>
+                  <SortHeader columnKey="createdAt" sort={lv.sort} onToggle={lv.toggleSort}>
+                    Created
+                  </SortHeader>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {lv.view.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell>
+                      <div className="font-medium">{r.beneficiaryName}</div>
+                      <div className="font-mono text-xs text-muted-foreground">
+                        {r.beneficiarySwift} · {r.beneficiaryCountry.toUpperCase()}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{formatInr(r.foreignAmountMinor, r.currency)}</TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">{formatInr(r.inrDebitedMinor)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">{formatInr(r.tcsMinor)}</TableCell>
+                    <TableCell>{outStatusBadge(r.status)}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      <TimeSince value={r.createdAt} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="outline" size="sm" onClick={() => setDetailId(r.id)}>
+                        Manage
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </DataState>
+        </CardContent>
+      </Card>
+
+      <CreateRemittanceSheet open={createOpen} onOpenChange={setCreateOpen} />
+      <RemittanceDetailSheet remittanceId={detailId} onClose={() => setDetailId(null)} />
+    </div>
+  );
+}
+
+function CreateRemittanceSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const qc = useQueryClient();
+  const [beneficiaryName, setBeneficiaryName] = useState("");
+  const [beneficiarySwift, setBeneficiarySwift] = useState("");
+  const [beneficiaryAccount, setBeneficiaryAccount] = useState("");
+  const [beneficiaryCountry, setBeneficiaryCountry] = useState("");
+  const [currency, setCurrency] = useState("USD");
+  const [amount, setAmount] = useState("");
+  const [purposeCode, setPurposeCode] = useState("");
+  const [quote, setQuote] = useState<OutQuote | null>(null);
+
+  const minor = rupeesToMinor(amount);
+
+  const quoteM = useMutation({
+    mutationFn: () =>
+      api<OutQuote>("/v1/crossborder/outbound/quote", {
+        method: "POST",
+        body: { currency, foreignAmountMinor: minor },
+      }),
+    onSuccess: setQuote,
+  });
+
+  const createM = useMutation({
+    mutationFn: () =>
+      api<OutRemittance>("/v1/crossborder/outbound", {
+        method: "POST",
+        body: {
+          beneficiaryName: beneficiaryName.trim(),
+          beneficiarySwift: beneficiarySwift.trim(),
+          beneficiaryAccount: beneficiaryAccount.trim(),
+          beneficiaryCountry: beneficiaryCountry.trim(),
+          currency,
+          foreignAmountMinor: minor,
+          purposeCode: purposeCode.trim(),
+        },
+      }),
+    meta: { successMessage: "Remittance initiated" },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["outbound-remittances"] });
+      onOpenChange(false);
+      setBeneficiaryName("");
+      setBeneficiarySwift("");
+      setBeneficiaryAccount("");
+      setBeneficiaryCountry("");
+      setAmount("");
+      setPurposeCode("");
+      setQuote(null);
+    },
+  });
+
+  const valid =
+    beneficiaryName.trim() !== "" &&
+    beneficiarySwift.trim() !== "" &&
+    beneficiaryAccount.trim() !== "" &&
+    beneficiaryCountry.trim() !== "" &&
+    purposeCode.trim() !== "" &&
+    minor !== null &&
+    minor > 0;
+
+  return (
+    <FormSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title="New outbound remittance"
+      description="Pay a foreign vendor via SWIFT. FX conversion, LRS financial-year usage, and 2.5% TCS above the LRS threshold are computed on quote."
+      submitLabel="Initiate remittance"
+      submitting={createM.isPending}
+      disabled={!valid}
+      onSubmit={() => createM.mutate()}
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <TextField id="ob-name" label="Beneficiary name" value={beneficiaryName} onChange={setBeneficiaryName} placeholder="Acme Cloud Inc" required />
+        <TextField id="ob-country" label="Country" value={beneficiaryCountry} onChange={setBeneficiaryCountry} placeholder="US" required />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <TextField id="ob-swift" label="SWIFT / BIC" value={beneficiarySwift} onChange={setBeneficiarySwift} placeholder="CHASUS33" required />
+        <TextField id="ob-account" label="Account" value={beneficiaryAccount} onChange={setBeneficiaryAccount} placeholder="000123456789" required />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="mb-1.5 block text-sm font-medium">Currency</label>
+          <Select value={currency} onValueChange={(v) => setCurrency(v as string)}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FOREIGN_CURRENCIES.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <MoneyField id="ob-amount" label={`Amount (${currency})`} value={amount} onChange={setAmount} required />
+      </div>
+      <TextField id="ob-purpose" label="FEMA purpose code" value={purposeCode} onChange={setPurposeCode} placeholder="S0301" required />
+
+      <div className="flex items-center gap-2">
+        <Button type="button" variant="outline" size="sm" disabled={minor === null || minor <= 0 || quoteM.isPending} onClick={() => quoteM.mutate()}>
+          {quoteM.isPending ? "Quoting…" : "Preview quote"}
+        </Button>
+        {quote && (
+          <span className="text-xs text-muted-foreground">
+            FX {fmtRate(quote.fxRate)} · FY {quote.financialYear}
+          </span>
+        )}
+      </div>
+
+      {quote && (
+        <div className="rounded-lg border p-3">
+          <DetailRow label="Principal (INR)" value={formatInr(quote.principalInrMinor)} />
+          <DetailRow label={`TCS (${(quote.tcsBps / 100).toFixed(2)}%)`} value={formatInr(quote.tcsMinor)} />
+          <DetailRow label="INR debited" value={<span className="font-semibold">{formatInr(quote.inrDebitedMinor)}</span>} />
+          <DetailRow label="LRS used (FY)" value={`${formatInr(quote.lrsCumulativeBeforeMinor)} / ${formatInr(quote.lrsThresholdMinor)}`} />
+        </div>
+      )}
+
+      <FormError error={createM.error ?? quoteM.error} />
+    </FormSheet>
+  );
+}
+
+function RemittanceDetailSheet({ remittanceId, onClose }: { remittanceId: string | null; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [reference, setReference] = useState("");
+
+  const detailQ = useQuery({
+    queryKey: ["outbound-remittance", remittanceId],
+    queryFn: () => api<OutDetail>(`/v1/crossborder/outbound/${remittanceId}`),
+    enabled: remittanceId !== null,
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["outbound-remittance", remittanceId] });
+    qc.invalidateQueries({ queryKey: ["outbound-remittances"] });
+  };
+
+  const remitM = useMutation({
+    mutationFn: () =>
+      api<OutRemittance>(`/v1/crossborder/outbound/${remittanceId}/mark-remitted`, {
+        method: "POST",
+        body: { remittanceReference: reference.trim() },
+      }),
+    meta: { successMessage: "Marked remitted" },
+    onSuccess: () => {
+      invalidate();
+      setReference("");
+    },
+  });
+  const failM = useMutation({
+    mutationFn: () =>
+      api<OutRemittance>(`/v1/crossborder/outbound/${remittanceId}/mark-failed`, {
+        method: "POST",
+        body: { reason: "Marked failed from console" },
+      }),
+    meta: { successMessage: "Marked failed" },
+    onSuccess: invalidate,
+  });
+
+  const r = detailQ.data?.remittance;
+  const events = detailQ.data?.events ?? [];
+
+  return (
+    <Sheet open={remittanceId !== null} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="right" className="flex w-full flex-col sm:max-w-lg">
+        <SheetHeader>
+          <SheetTitle>{r ? r.beneficiaryName : "Remittance"}</SheetTitle>
+          <SheetDescription>
+            {r ? `${r.beneficiarySwift} · ${formatInr(r.foreignAmountMinor, r.currency)}` : "Loading…"}
+          </SheetDescription>
+        </SheetHeader>
+        <div className="flex-1 space-y-5 overflow-y-auto px-4">
+          <DataState isLoading={detailQ.isLoading} isError={detailQ.isError} error={detailQ.error} skeletonRows={4}>
+            {r && (
+              <>
+                <div>
+                  <DetailRow label="Status" value={outStatusBadge(r.status)} />
+                  <DetailRow label="FX rate" value={fmtRate(r.fxRate)} />
+                  <DetailRow label="Principal (INR)" value={formatInr(r.principalInrMinor)} />
+                  <DetailRow label="TCS" value={formatInr(r.tcsMinor)} />
+                  <DetailRow label="INR debited" value={formatInr(r.inrDebitedMinor)} />
+                  <DetailRow label="LRS used (FY)" value={`${formatInr(r.lrsCumulativeAfterMinor)} · ${r.financialYear}`} />
+                  {r.remittanceReference && <DetailRow label="Reference" value={r.remittanceReference} />}
+                </div>
+
+                <div>
+                  <p className="mb-2 text-sm font-medium">Events</p>
+                  {events.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No events recorded.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {events.map((e) => (
+                        <li key={e.id} className="flex items-center justify-between rounded-lg border p-2.5 text-sm">
+                          <span>
+                            <Badge variant="outline">{e.type}</Badge>
+                            {e.note && <span className="ml-2 text-xs text-muted-foreground">{e.note}</span>}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            <TimeSince value={e.createdAt} />
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {r.status === "INITIATED" && (
+                  <div className="space-y-3 rounded-lg border p-3">
+                    <p className="text-sm font-medium">Settle remittance</p>
+                    <TextField id="ob-ref" label="Remittance reference" value={reference} onChange={setReference} placeholder="SWIFT MT103 ref" />
+                    <FormError error={remitM.error ?? failM.error} />
+                    <div className="flex gap-2">
+                      <Button size="sm" disabled={reference.trim() === "" || remitM.isPending} onClick={() => remitM.mutate()}>
+                        Mark remitted
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={failM.isPending} onClick={() => failM.mutate()}>
+                        Mark failed
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </DataState>
+        </div>
+        <SheetFooter>
+          <Separator className="mb-2" />
+          <SheetClose render={<Button variant="outline">Close</Button>} />
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }

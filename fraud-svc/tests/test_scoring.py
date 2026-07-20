@@ -114,3 +114,15 @@ def test_invalid_request_rejected(client: TestClient):
     # amountMinor must be >= 0; missing required field -> 422.
     resp = client.post("/score", json={"paymentId": "p", "merchantId": "m"})
     assert resp.status_code == 422
+
+
+def test_score_response_carries_explanation_and_model(client: TestClient):
+    # Explainable AI: every /score response includes the SHAP-style explanation
+    # and the scoring model, in addition to the legacy `reasons` list.
+    body = client.post("/score", json=_payload()).json()
+    assert body["model"] == "rules"  # default path (no ONNX model in CI)
+    assert isinstance(body["explanation"], list) and body["explanation"]
+    top = body["explanation"][0]
+    assert {"feature", "contribution", "value", "reason"} <= set(top.keys())
+    # Legacy reasons contract is preserved for a clean, low-risk payment.
+    assert body["reasons"] == ["no risk signals triggered"]

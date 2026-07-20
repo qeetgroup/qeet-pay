@@ -6,3 +6,10 @@ uvicorn[standard]>=0.34.0
 pydantic>=2.11.7
 pytest>=8.3.4
 httpx>=0.28.1
+
+# Optional runtime extras — NOT installed by default so CI/tests stay light and
+# fully offline (the service falls back to the rules scorer + in-memory velocity
+# when these are absent). Install to enable the model / Redis paths:
+#   onnxruntime>=1.17    # ONNX inference when FRAUD_MODEL_PATH is set
+#   numpy>=1.26          # feature tensor for onnxruntime
+#   redis>=5.0           # shared velocity features when REDIS_URL is set

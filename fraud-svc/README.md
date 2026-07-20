@@ -7,10 +7,21 @@ The Java 21 / Spring Boot payment engine calls this service **synchronously**
 during payment authorization with a target of **< 100ms P99**. It returns a
 risk score, a decision, and the explainable signals behind the decision.
 
-> **Phase 1 = deterministic rules-based stub.** Dependencies are kept light
-> (no ML wheels) so tests run fast and offline. The production model is
-> XGBoost/LightGBM served via ONNX — see the `# TODO` in `app/scoring.py`
-> (TAD §8.1). The rules stay as the transparent cold-start / fallback scorer.
+> **ML scoring + Explainable AI (TAD Module 08.1/8.4).** The service scores via
+> an ONNX model when `FRAUD_MODEL_PATH` is set, and otherwise via the transparent
+> deterministic rules (the cold-start / CI / fallback scorer). Either way every
+> response carries a deterministic, RBI-audit-friendly `explanation` — the top
+> contributing features with plain-English reasons — computed from a documented
+> baseline linear model (`app/model/baseline.py`), so the explainability path
+> runs end-to-end with **no trained model file shipped**. Default deps stay light
+> (no ML/Redis wheels) so tests run fast and offline.
+
+## Configuration
+
+| Env var | Effect |
+| --- | --- |
+| `FRAUD_MODEL_PATH` | Path to an ONNX model. When set (and loadable), scoring uses `onnxruntime`; otherwise the rules scorer. A missing/invalid file safely falls back to rules. |
+| `REDIS_URL` (or legacy `QEETPAY_FRAUD_REDIS_URL`) | Redis URL for shared, cross-instance velocity features. Unset (or unreachable) → in-process sliding-window counter. |
 
 ## Port
 
@@ -88,9 +99,18 @@ Invalid input → HTTP `422`.
 
 ```json
 {
-  "score": 0,
-  "decision": "allow",
-  "reasons": ["no risk signals triggered"],
+  "score": 40,
+  "decision": "challenge",
+  "reasons": ["missing or blank customerVpa"],
+  "explanation": [
+    {
+      "feature": "missing_vpa",
+      "contribution": 40.0,
+      "value": 1.0,
+      "reason": "No customer VPA was supplied on a UPI-style payment (increased risk)"
+    }
+  ],
+  "model": "rules",
   "latencyMs": 0.21
 }
 ```
@@ -100,6 +120,8 @@ Invalid input → HTTP `422`.
 | `score` | int `0`–`100` | Higher = riskier. |
 | `decision` | `"allow"` \| `"challenge"` \| `"block"` | Mapped from `score`. |
 | `reasons` | string[] | Explainable signals that fired (TAD §8.2). |
+| `explanation` | object[] | Deterministic SHAP-style top contributing features — `{feature, contribution, value, reason}` (Explainable AI, TAD §8.4). |
+| `model` | string | Scoring model: `"onnx"` or `"rules"`. |
 | `latencyMs` | float | Server-side scoring latency. |
 
 ## Scoring rules (Phase 1)
@@ -125,11 +147,18 @@ Deterministic signals combined into a 0–100 score:
 ```
 fraud-svc/
 ├── app/
-│   ├── main.py       # FastAPI app: /healthz, /score
-│   ├── models.py     # Pydantic request/response models
-│   └── scoring.py    # rules-based stub + velocity tracker (XGBoost TODO here)
+│   ├── main.py                  # FastAPI app: /healthz, /score
+│   ├── models.py                # Pydantic request/response models (+ FeatureContribution)
+│   ├── scoring.py               # engine: ONNX-or-rules score + explanation + velocity wiring
+│   ├── model/
+│   │   ├── features.py          # ScoreRequest -> normalised FeatureVector
+│   │   ├── predict.py           # ONNX inference (onnxruntime) when FRAUD_MODEL_PATH is set
+│   │   └── baseline.py          # documented baseline linear model + SHAP-style explainer
+│   └── velocity/
+│       └── redis_tracker.py     # Redis-backed velocity (REDIS_URL) with in-memory fallback
 ├── tests/
-│   └── test_scoring.py
+│   ├── test_scoring.py
+│   └── test_score_v2.py
 ├── requirements.txt
 ├── Dockerfile
 ├── pytest.ini

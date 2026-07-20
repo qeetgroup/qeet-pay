@@ -64,9 +64,64 @@ public class DunningController {
                 dunning.triggerSmart(MerchantContext.require(), subscriptionId, req.failureCode()));
     }
 
+    /**
+     * Explainable AI retry recommendation (PRD Module 04.2 "Smart Retry" + 04.5 "Explainable Dunning")
+     * — no state change. Given a failure code and (optional) engagement signals, returns the recommended
+     * channel order, payday-aware timing and message tone, each with a plain-English reason. Computed via
+     * the AI gateway with a deterministic fail-closed fallback ({@code aiAssisted == false}).
+     */
+    @PostMapping("/subscriptions/{subscriptionId}/ai-recommend")
+    public AiRecommendView aiRecommend(
+            @PathVariable UUID subscriptionId, @Valid @RequestBody AiRecommendRequest req) {
+        EngagementSignals signals =
+                new EngagementSignals(
+                        req.daysUntilPayday() == null ? -1 : req.daysUntilPayday(),
+                        req.engagementScore() == null ? 0.5 : req.engagementScore(),
+                        req.preferredChannel(),
+                        req.preferredLanguage(),
+                        req.customerContactHint());
+        AiRetryPlan plan =
+                dunning.recommendRetry(
+                        MerchantContext.require(), req.failureCode(), signals, java.util.Set.of());
+        return AiRecommendView.of(subscriptionId, plan);
+    }
+
     // ── Request / view records ────────────────────────────────────────────────
 
     public record ClassifyRequest(@NotBlank String failureCode) {}
+
+    /** Failure code + optional engagement signals for the AI retry recommendation. */
+    public record AiRecommendRequest(
+            @NotBlank String failureCode,
+            Integer daysUntilPayday,
+            Double engagementScore,
+            String preferredChannel,
+            String preferredLanguage,
+            String customerContactHint) {}
+
+    public record AiRecommendView(
+            String subscriptionId,
+            String category,
+            boolean retryable,
+            int recommendedDelayHours,
+            List<String> channelOrder,
+            String messageTone,
+            List<String> reasons,
+            boolean aiAssisted,
+            String decisionId) {
+        static AiRecommendView of(UUID subscriptionId, AiRetryPlan p) {
+            return new AiRecommendView(
+                    subscriptionId.toString(),
+                    p.category().name(),
+                    p.retryable(),
+                    p.recommendedDelayHours(),
+                    p.channelOrder(),
+                    p.messageTone(),
+                    p.reasons(),
+                    p.aiAssisted(),
+                    p.decisionId() == null ? null : p.decisionId().toString());
+        }
+    }
 
     public record ClassificationView(
             String category, boolean retryable, int recommendedDelayHours,
