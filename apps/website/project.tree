@@ -1,0 +1,109 @@
+├── .env.example
+├── .env.production
+├── .gitignore
+├── AGENTS.md
+├── bun.lock
+├── CLAUDE.md
+├── next-env.d.ts
+├── next.config.ts
+├── package.json
+├── pnpm-workspace.yaml
+├── postcss.config.mjs
+├── project.tree
+├── public
+│  ├── apple-icon.png
+│  ├── avatars
+│  │  ├── dev.jpg
+│  │  ├── jun.jpg
+│  │  ├── marcus.jpg
+│  │  ├── priya.jpg
+│  │  └── sofia.jpg
+│  ├── favicon.ico
+│  ├── icon.png
+│  ├── qeet-logo-on-dark.svg
+│  └── qeet-logo-on-light.svg
+├── README.md
+├── src
+│  ├── app
+│  │  ├── (marketing)
+│  │  │  ├── about
+│  │  │  │  └── page.tsx
+│  │  │  ├── compare
+│  │  │  │  ├── chargebee
+│  │  │  │  │  └── page.tsx
+│  │  │  │  ├── page.tsx
+│  │  │  │  ├── razorpay
+│  │  │  │  │  └── page.tsx
+│  │  │  │  └── stripe
+│  │  │  │    └── page.tsx
+│  │  │  ├── contact
+│  │  │  │  └── page.tsx
+│  │  │  ├── layout.tsx
+│  │  │  ├── page.tsx
+│  │  │  ├── pricing
+│  │  │  │  └── page.tsx
+│  │  │  └── product
+│  │  │    └── page.tsx
+│  │  ├── globals.css
+│  │  ├── layout.tsx
+│  │  ├── robots.ts
+│  │  └── sitemap.ts
+│  ├── components
+│  │  └── marketing
+│  │    ├── blocks
+│  │    │  ├── arrow-cta.tsx
+│  │    │  ├── bezel-card.tsx
+│  │    │  ├── eyebrow.tsx
+│  │    │  ├── initials-avatar.tsx
+│  │    │  └── logo-wall.tsx
+│  │    ├── button-link.tsx
+│  │    ├── comparison-page.tsx
+│  │    ├── contact-form.tsx
+│  │    ├── data
+│  │    │  ├── comparisons.ts
+│  │    │  ├── features.ts
+│  │    │  └── pricing.ts
+│  │    ├── effects
+│  │    │  ├── aurora.tsx
+│  │    │  ├── blur-text.tsx
+│  │    │  ├── border-beam.tsx
+│  │    │  ├── code-block.tsx
+│  │    │  ├── dot-pattern.tsx
+│  │    │  ├── glow-card.tsx
+│  │    │  ├── grain-overlay.tsx
+│  │    │  ├── marquee.tsx
+│  │    │  ├── number-ticker.tsx
+│  │    │  ├── orb.tsx
+│  │    │  ├── shape-grid.tsx
+│  │    │  ├── shiny-text.tsx
+│  │    │  ├── spotlight-card.tsx
+│  │    │  └── threads.tsx
+│  │    ├── faq-accordion.tsx
+│  │    ├── motion
+│  │    │  ├── fade-rise.tsx
+│  │    │  ├── index.ts
+│  │    │  ├── magnetic.tsx
+│  │    │  ├── parallax.tsx
+│  │    │  ├── reveal.tsx
+│  │    │  ├── scroll-progress.tsx
+│  │    │  ├── stagger.tsx
+│  │    │  ├── tilt.tsx
+│  │    │  └── word-reveal.tsx
+│  │    ├── page-hero.tsx
+│  │    ├── pricing-calculator.tsx
+│  │    ├── pricing-tiers.tsx
+│  │    ├── qeet-mark.tsx
+│  │    ├── section.tsx
+│  │    ├── sections
+│  │    ├── site-footer.tsx
+│  │    ├── site-header.tsx
+│  │    ├── sticky-cta-bar.tsx
+│  │    ├── structured-data.tsx
+│  │    └── theme-toggle.tsx
+│  └── lib
+│    ├── links.ts
+│    ├── og.tsx
+│    └── use-reduced-motion.ts
+├── tsconfig.json
+├── tsconfig.tsbuildinfo
+└── vercel.json

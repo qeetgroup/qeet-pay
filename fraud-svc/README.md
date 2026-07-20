@@ -22,6 +22,13 @@ risk score, a decision, and the explainable signals behind the decision.
 | --- | --- |
 | `FRAUD_MODEL_PATH` | Path to an ONNX model. When set (and loadable), scoring uses `onnxruntime`; otherwise the rules scorer. A missing/invalid file safely falls back to rules. |
 | `REDIS_URL` (or legacy `QEETPAY_FRAUD_REDIS_URL`) | Redis URL for shared, cross-instance velocity features. Unset (or unreachable) → in-process sliding-window counter. |
+| `MAXMIND_DB_PATH` | Path to a local MaxMind GeoIP2/GeoLite2 `.mmdb`. When set (and readable, with `geoip2` installed) the `ip_risk` feature resolves country + anonymizer/proxy/hosting flags to a `0.0–1.0` risk score. |
+| `MAXMIND_ACCOUNT_ID` / `MAXMIND_LICENSE_KEY` | GeoIP2 web-service credentials, used when no `MAXMIND_DB_PATH` is set. |
+
+> If no MaxMind config is present (or the optional `geoip2` wheel is absent), the
+> `ip_risk` feature falls back to a deterministic offline heuristic:
+> private/loopback = `0.0`; a sampled high-risk/anonymizer CIDR list = high; other
+> public IPs = a light default. See `app/model/ip_risk.py`.
 
 ## Port
 
@@ -152,13 +159,15 @@ fraud-svc/
 │   ├── scoring.py               # engine: ONNX-or-rules score + explanation + velocity wiring
 │   ├── model/
 │   │   ├── features.py          # ScoreRequest -> normalised FeatureVector
+│   │   ├── ip_risk.py           # IP-risk signal: MaxMind GeoIP2/GeoLite2 or offline heuristic
 │   │   ├── predict.py           # ONNX inference (onnxruntime) when FRAUD_MODEL_PATH is set
 │   │   └── baseline.py          # documented baseline linear model + SHAP-style explainer
 │   └── velocity/
 │       └── redis_tracker.py     # Redis-backed velocity (REDIS_URL) with in-memory fallback
 ├── tests/
 │   ├── test_scoring.py
-│   └── test_score_v2.py
+│   ├── test_score_v2.py
+│   └── test_ip_risk.py
 ├── requirements.txt
 ├── Dockerfile
 ├── pytest.ini

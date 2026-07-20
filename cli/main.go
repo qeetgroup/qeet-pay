@@ -62,6 +62,48 @@ func main() {
 		err = runWebhooks(rest)
 	case "sandbox":
 		err = runSandbox(rest)
+	case "mandates":
+		err = runMandates(rest)
+	case "virtual-accounts":
+		err = runVirtualAccounts(rest)
+	case "reconciliation":
+		err = runReconciliation(rest)
+	case "revrec":
+		err = runRevRec(rest)
+	case "marketplace":
+		err = runMarketplace(rest)
+	case "insurance":
+		err = runInsurance(rest)
+	case "bnpl":
+		err = runBNPL(rest)
+	case "tds":
+		err = runTDS(rest)
+	case "crossborder":
+		err = runCrossborder(rest)
+	case "treasury":
+		err = runTreasury(rest)
+	case "payroll":
+		err = runPayroll(rest)
+	case "offline":
+		err = runOffline(rest)
+	case "ondc":
+		err = runONDC(rest)
+	case "messaging":
+		err = runMessaging(rest)
+	case "kyc":
+		err = runKYC(rest)
+	case "aml":
+		err = runAML(rest)
+	case "agentic":
+		err = runAgentic(rest)
+	case "accounting":
+		err = runAccounting(rest)
+	case "copilot":
+		err = runCopilot(rest)
+	case "fraud":
+		err = runFraud(rest)
+	case "compliance":
+		err = runCompliance(rest)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command %q\n\n", group)
 		usage()
@@ -111,6 +153,42 @@ Commands:
   kyb        pan | gstin | bank | status
   webhooks   register | list | disable | deliveries
   sandbox    seed
+  mandates   create | list | get | activate | pause | revoke | debit | debits
+  virtual-accounts  mint | list | get | credit | close
+  reconciliation    ingest | settlements | settlement-get
+  revrec     schedule-create | schedule-list | schedule-get | recognize
+  marketplace  split-create | split-list | split-get | split-cancel |
+             seller-register | seller-list | seller-suspend | seller-activate
+  insurance  policy-issue | policy-list | policy-get | policy-cancel |
+             claim-file | claim-approve | claim-reject
+  bnpl       create | list | get | pay
+  tds        deduction-record | deduction-list | deduction-get | certificate |
+             summary | return-prepare | return-list | return-get | return-file | return-export
+  crossborder  outbound-create | outbound-list | outbound-get | outbound-quote |
+             outbound-mark-remitted | outbound-mark-failed |
+             export-create | export-list | export-get | export-remittance
+  treasury   rule-create | rule-list | rule-get | rule-pause | rule-resume |
+             sweep-run | sweeps | recommendations
+  payroll    batch-create | batch-list | batch-get | batch-approve | batch-reject |
+             lines | slip
+  offline    wallet-create | wallet-list | wallet-get | wallet-topup | wallet-spend |
+             pos-capture | pos-list | device-register | device-list |
+             qr-generate | qr-list | intent-create | intent-list | intent-confirm
+  ondc       order-create | order-list | order-get | order-fulfill | order-settle | order-cancel
+  messaging  templates | template-upsert | dispatch | dispatches | dispatch-get |
+             dispatch-delivered | dispatch-failed | whatsapp-pay-create |
+             whatsapp-pay-list | whatsapp-pay-confirm | whatsapp-inbound | whatsapp-inbound-list
+  kyc        customer-create | customer-list | customer-get | customer-pan | customer-consent |
+             aadhaar-initiate | aadhaar-verify | vcip-schedule | vcip-list | vcip-get |
+             vcip-start | vcip-complete | vcip-fail | ubo-add | ubo-list | ubo-get | ubo-remove
+  aml        screen | mule-scan | monitor | alerts | cases | case-create |
+             case-close | str-list | str-create
+  agentic    mandate-issue | mandate-list | mandate-get | mandate-authorize |
+             mandate-revoke | mcp-manifest
+  accounting connections | connect | export-create | export-list | export-get | export-download
+  copilot    ask | treasury-ask | reconciliation-ask | conversations | conversation
+  fraud      decisions | decision-get
+  compliance health
 
 Examples:
   qp sandbox seed --slug acme-demo --name "Acme Demo"
@@ -119,6 +197,10 @@ Examples:
   qp links create --title "Invoice #42" --amount 250000
   qp gst return-prepare --type GSTR1 --period 2026-06
   qp analytics arr
+  qp mandates create --customer cust-1 --type UPI_AUTOPAY --frequency MONTHLY --start-date 2026-07-01
+  qp virtual-accounts mint --customer cust-1
+  qp treasury rule-create --name "Idle sweep" --source-account settlement --target-account bank --trigger THRESHOLD --threshold 5000000
+  qp copilot ask --question "What is my current settlement balance?"
 
 Run 'qp <command> <subcommand> -h' for a subcommand's flags.
 `)

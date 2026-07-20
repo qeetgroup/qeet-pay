@@ -10,7 +10,7 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
   },
   "dependencies": {
-    "@qeetrix/ui": "^1.0.1",
+    "@qeetrix/ui": "^1.0.2",
     "@tailwindcss/vite": "^4.1.0",
     "@tanstack/react-devtools": "^0.10.5",
     "@tanstack/react-query": "^5.100.14",

@@ -21,12 +21,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Accounting integrations API (PRD Module 11.3): run an export of a period's ledger + GST to an
- * external system (tally | zoho | webhook), read/download past runs, and manage per-target
+ * external system (tally | zoho | webhook | sap), read/download past runs, and manage per-target
  * connection settings. Merchant comes from {@link MerchantContext}.
  */
 @Tag(
         name = "Accounting",
-        description = "Export a period's ledger journal entries + GST invoices to Tally / Zoho Books / a webhook, and manage connections.")
+        description = "Export a period's ledger journal entries + GST invoices to Tally / Zoho Books / SAP Business One / a webhook, and manage connections.")
 @RestController
 @RequestMapping("/v1/accounting")
 public class AccountingController {

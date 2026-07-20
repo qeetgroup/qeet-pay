@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.cards;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -89,11 +90,13 @@ public class CardController {
 
     // ── Records ──────────────────────────────────────────────────────────────
 
+    @Schema(name = "CardIssueRequest")
     public record IssueRequest(
             @NotBlank String holderRef,
             @NotNull CardType type,
             @NotBlank String currency) {}
 
+    @Schema(name = "CardAmountRequest")
     public record AmountRequest(@NotNull @Positive Long amountMinor) {}
 
     public record SpendRequest(@NotNull @Positive Long amountMinor, String description) {}

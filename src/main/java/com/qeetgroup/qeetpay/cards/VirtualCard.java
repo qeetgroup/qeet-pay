@@ -55,6 +55,19 @@ public class VirtualCard {
         this.currency = currency;
     }
 
+    /**
+     * Constructs a card with a caller-supplied id. Used at issuing time so the internal card id can be
+     * sent to the card-issuing rail as its client reference (see {@link CardIssuingProvider}).
+     */
+    public VirtualCard(UUID id, UUID merchantId, String holderRef, CardType type, String maskedPan, String currency) {
+        this.id = id;
+        this.merchantId = merchantId;
+        this.holderRef = holderRef;
+        this.type = type;
+        this.maskedPan = maskedPan;
+        this.currency = currency;
+    }
+
     public boolean isActive() {
         return status == CardStatus.ACTIVE;
     }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyRecord;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyService;
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
@@ -98,11 +99,13 @@ public class LedgerController {
             @NotEmpty String currency,
             @NotEmpty List<LineDto> lines) {}
 
+    @Schema(name = "LedgerLineDto")
     public record LineDto(
             @NotNull UUID accountId, @NotNull Direction direction, @Positive long amountMinor) {}
 
     public record PostEntryResponse(String entryId) {}
 
+    @Schema(name = "LedgerAccountView")
     public record AccountView(String id, String code, String type, String currency) {}
 
     public record BalanceView(String accountId, long balanceMinor) {}

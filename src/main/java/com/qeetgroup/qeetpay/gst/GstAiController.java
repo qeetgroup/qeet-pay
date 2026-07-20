@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.gst;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -78,6 +79,7 @@ public class GstAiController {
 
     // ── Request / response records ─────────────────────────────────────────────
 
+    @Schema(name = "GstClassifyRequest")
     public record ClassifyRequest(@NotBlank String description) {}
 
     public record CreateRegChangeRequest(

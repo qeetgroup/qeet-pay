@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.kyb;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -49,6 +50,7 @@ public class KybController {
 
     // ── Records ──────────────────────────────────────────────────────────────
 
+    @Schema(name = "KybPanRequest")
     public record PanRequest(@NotBlank String pan) {}
     public record GstinRequest(@NotBlank String gstin) {}
     public record BankRequest(@NotBlank String accountNumber, @NotBlank String ifsc) {}

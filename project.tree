@@ -1,0 +1,172 @@
+├── .claude
+├── .github
+│  └── workflows
+├── api
+│  ├── openapi
+│  └── postman
+├── apps
+│  ├── checkout
+│  │  └── src
+│  │    ├── app
+│  │    │  └── pay
+│  │    │    └── [code]
+│  │    ├── components
+│  │    ├── i18n
+│  │    │  └── locales
+│  │    │    └── en
+│  │    └── lib
+│  ├── console
+│  │  └── src
+│  │    ├── components
+│  │    │  └── data-table
+│  │    ├── config
+│  │    ├── core
+│  │    │  ├── auth
+│  │    │  ├── config
+│  │    │  └── providers
+│  │    ├── features
+│  │    │  ├── finance
+│  │    │  ├── gst
+│  │    │  └── money
+│  │    ├── integrations
+│  │    │  └── tanstack-query
+│  │    ├── lib
+│  │    └── routes
+│  │      └── _app
+│  │        └── settings
+│  └── website
+│    ├── public
+│    │  └── avatars
+│    └── src
+│      ├── app
+│      │  └── (marketing)
+│      │    ├── about
+│      │    ├── compare
+│      │    │  ├── chargebee
+│      │    │  ├── razorpay
+│      │    │  └── stripe
+│      │    ├── contact
+│      │    ├── pricing
+│      │    └── product
+│      ├── components
+│      │  └── marketing
+│      │    ├── blocks
+│      │    ├── data
+│      │    ├── effects
+│      │    ├── motion
+│      │    └── sections
+│      └── lib
+├── cli
+├── deploy
+│  └── k8s
+├── docs
+├── fraud-svc
+│  ├── app
+│  │  ├── model
+│  │  └── velocity
+│  └── tests
+├── gradle
+│  └── wrapper
+└── src
+  ├── main
+  │  ├── java
+  │  │  └── com
+  │  │    └── qeetgroup
+  │  │      └── qeetpay
+  │  │        ├── accounting
+  │  │        ├── agentic
+  │  │        ├── ai
+  │  │        ├── aml
+  │  │        ├── analytics
+  │  │        ├── billing
+  │  │        ├── bnpl
+  │  │        ├── cards
+  │  │        ├── checkout
+  │  │        ├── copilot
+  │  │        ├── crossborder
+  │  │        ├── dunning
+  │  │        ├── escrow
+  │  │        ├── esg
+  │  │        ├── filing
+  │  │        ├── fraud
+  │  │        ├── gst
+  │  │        ├── insurance
+  │  │        ├── itc
+  │  │        ├── kyb
+  │  │        ├── ledger
+  │  │        ├── lending
+  │  │        ├── mandates
+  │  │        ├── marketplace
+  │  │        ├── merchants
+  │  │        ├── messaging
+  │  │        ├── offline
+  │  │        ├── ondc
+  │  │        ├── paymentlinks
+  │  │        ├── payments
+  │  │        ├── payouts
+  │  │        ├── payroll
+  │  │        ├── platform
+  │  │        │  ├── api
+  │  │        │  ├── config
+  │  │        │  ├── customers
+  │  │        │  ├── idempotency
+  │  │        │  ├── observability
+  │  │        │  ├── openapi
+  │  │        │  ├── outbox
+  │  │        │  ├── ratelimit
+  │  │        │  ├── security
+  │  │        │  └── tenancy
+  │  │        ├── reconciliation
+  │  │        ├── revrec
+  │  │        ├── tds
+  │  │        ├── virtualaccounts
+  │  │        └── webhooks
+  │  └── resources
+  │    └── db
+  │      └── migration
+  └── test
+    └── java
+      └── com
+        └── qeetgroup
+          └── qeetpay
+            ├── accounting
+            ├── agentic
+            ├── ai
+            ├── aml
+            ├── analytics
+            ├── billing
+            ├── bnpl
+            ├── cards
+            ├── checkout
+            ├── copilot
+            ├── crossborder
+            ├── dunning
+            ├── escrow
+            ├── esg
+            ├── filing
+            ├── gst
+            ├── insurance
+            ├── itc
+            ├── kyb
+            ├── ledger
+            ├── lending
+            ├── mandates
+            ├── marketplace
+            ├── merchants
+            ├── messaging
+            ├── offline
+            ├── ondc
+            ├── paymentlinks
+            ├── payments
+            ├── payouts
+            ├── payroll
+            ├── platform
+            │  ├── idempotency
+            │  ├── openapi
+            │  ├── outbox
+            │  └── tenancy
+            ├── reconciliation
+            ├── revrec
+            ├── tds
+            ├── virtualaccounts
+            └── webhooks

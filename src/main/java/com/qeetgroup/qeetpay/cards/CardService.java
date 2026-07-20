@@ -10,10 +10,8 @@ import com.qeetgroup.qeetpay.platform.outbox.OutboxService;
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantScope;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +33,7 @@ public class CardService {
     private final MerchantScope merchantScope;
     private final OutboxService outbox;
     private final ObjectMapper objectMapper;
+    private final CardIssuingProvider issuing;
 
     public CardService(
             VirtualCardRepository cards,
@@ -42,13 +41,15 @@ public class CardService {
             LedgerService ledger,
             MerchantScope merchantScope,
             OutboxService outbox,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            CardIssuingProvider issuing) {
         this.cards = cards;
         this.txns = txns;
         this.ledger = ledger;
         this.merchantScope = merchantScope;
         this.outbox = outbox;
         this.objectMapper = objectMapper;
+        this.issuing = issuing;
     }
 
     /** Issues a new ACTIVE card with a zero balance and a freshly generated masked PAN. */
@@ -64,8 +65,11 @@ public class CardService {
         if (currency == null || currency.isBlank()) {
             throw new IllegalArgumentException("currency is required");
         }
+        UUID cardId = UUID.randomUUID();
+        CardIssuingProvider.IssuedCard issued =
+                issuing.issue(new CardIssuingProvider.CardIssueRequest(cardId, merchantId, holderRef, type, currency));
         VirtualCard card =
-                cards.save(new VirtualCard(merchantId, holderRef, type, generateMaskedPan(), currency));
+                cards.save(new VirtualCard(cardId, merchantId, holderRef, type, maskedPan(issued.last4()), currency));
         outbox.enqueue(merchantId, "card.issued", cardJson(card));
         return card;
     }
@@ -81,6 +85,8 @@ public class CardService {
         if (!card.isActive()) {
             throw new IllegalStateException("card is " + card.getStatus());
         }
+        issuing.authorizeLoad(
+                new CardIssuingProvider.CardAuthorization(card.getId().toString(), amountMinor, card.getCurrency()));
 
         UUID settlement = ledger.accountByCode(merchantId, "settlement").getId();
         UUID cardLiability = cardLiability(merchantId, card.getCurrency());
@@ -103,6 +109,8 @@ public class CardService {
     public VirtualCard spend(UUID merchantId, UUID cardId, long amountMinor, String description) {
         merchantScope.apply(merchantId);
         VirtualCard card = load(merchantId, cardId);
+        issuing.authorizeSpend(
+                new CardIssuingProvider.CardAuthorization(card.getId().toString(), amountMinor, card.getCurrency()));
 
         UUID cardLiability = cardLiability(merchantId, card.getCurrency());
         UUID settlement = ledger.accountByCode(merchantId, "settlement").getId();
@@ -124,6 +132,7 @@ public class CardService {
     public VirtualCard freeze(UUID merchantId, UUID cardId) {
         merchantScope.apply(merchantId);
         VirtualCard card = load(merchantId, cardId);
+        issuing.freeze(card.getId().toString());
         card.freeze();
         cards.save(card);
         outbox.enqueue(merchantId, "card.frozen", cardJson(card));
@@ -134,6 +143,7 @@ public class CardService {
     public VirtualCard unfreeze(UUID merchantId, UUID cardId) {
         merchantScope.apply(merchantId);
         VirtualCard card = load(merchantId, cardId);
+        issuing.unfreeze(card.getId().toString());
         card.unfreeze();
         cards.save(card);
         outbox.enqueue(merchantId, "card.unfrozen", cardJson(card));
@@ -144,6 +154,7 @@ public class CardService {
     public VirtualCard close(UUID merchantId, UUID cardId) {
         merchantScope.apply(merchantId);
         VirtualCard card = load(merchantId, cardId);
+        issuing.close(card.getId().toString());
         card.close();
         cards.save(card);
         outbox.enqueue(merchantId, "card.closed", cardJson(card));
@@ -175,9 +186,9 @@ public class CardService {
                 .orElseThrow(() -> new CardNotFoundException("no card " + cardId));
     }
 
-    /** A masked PAN of the form {@code "XXXX XXXX XXXX 1234"} (sandbox — no real card is minted). */
-    private String generateMaskedPan() {
-        return "XXXX XXXX XXXX " + String.format(Locale.ROOT, "%04d", ThreadLocalRandom.current().nextInt(10_000));
+    /** Builds a display masked PAN of the form {@code "XXXX XXXX XXXX 1234"} from a card's last four. */
+    private static String maskedPan(String last4) {
+        return "XXXX XXXX XXXX " + last4;
     }
 
     /** A card plus its transaction history. */

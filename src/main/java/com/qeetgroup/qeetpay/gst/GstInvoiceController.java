@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyRecord;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyService;
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -103,6 +104,7 @@ public class GstInvoiceController {
             @NotBlank String currency,
             @NotEmpty List<LineDto> lines) {}
 
+    @Schema(name = "GstInvoiceLineDto")
     public record LineDto(
             @NotBlank String description,
             @NotBlank String hsnSac,
@@ -119,6 +121,7 @@ public class GstInvoiceController {
         }
     }
 
+    @Schema(name = "GstInvoiceView")
     public record InvoiceView(
             String id,
             String invoiceNumber,

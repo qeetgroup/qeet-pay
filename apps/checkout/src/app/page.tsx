@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import { CheckoutCard } from "@/components/checkout-card";
 import { CheckoutShell } from "@/components/checkout-shell";
 
-// The checkout has no index of its own — payers arrive at /l/{code} from a
+// The checkout has no index of its own — payers arrive at /pay/{code} from a
 // shared link. This landing is the fallback for a stray visit: enter a payment
 // code and we route to its checkout page.
 export default function Home() {
@@ -19,7 +19,7 @@ export default function Home() {
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const trimmed = code.trim();
-    if (trimmed) router.push(`/l/${encodeURIComponent(trimmed)}`);
+    if (trimmed) router.push(`/pay/${encodeURIComponent(trimmed)}`);
   }
 
   return (

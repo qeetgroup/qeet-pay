@@ -1,0 +1,111 @@
+├── .dockerignore
+├── .env.example
+├── .gitignore
+├── bun.lock
+├── Dockerfile
+├── package.json
+├── project.tree
+├── src
+│  ├── components
+│  │  ├── app-sidebar.tsx
+│  │  ├── chart-kit.tsx
+│  │  ├── data-table
+│  │  │  ├── bulk-bar.tsx
+│  │  │  ├── index.ts
+│  │  │  ├── list-toolbar.tsx
+│  │  │  ├── selection.tsx
+│  │  │  └── sort-header.tsx
+│  │  ├── dynamic-breadcrumb.tsx
+│  │  ├── env-badge.tsx
+│  │  ├── nav-main.tsx
+│  │  ├── nav-user.tsx
+│  │  ├── page-header.tsx
+│  │  ├── section-card.tsx
+│  │  ├── stat-tile.tsx
+│  │  └── theme-toggle.tsx
+│  ├── config
+│  │  └── navigation.tsx
+│  ├── core
+│  │  ├── auth
+│  │  │  └── index.ts
+│  │  ├── config
+│  │  │  └── index.ts
+│  │  └── providers
+│  │    └── index.tsx
+│  ├── features
+│  │  ├── finance
+│  │  │  └── shared.tsx
+│  │  ├── gst
+│  │  │  └── ui.tsx
+│  │  └── money
+│  │    └── status.tsx
+│  ├── integrations
+│  │  └── tanstack-query
+│  │    ├── devtools.tsx
+│  │    └── root-provider.tsx
+│  ├── lib
+│  │  ├── api.ts
+│  │  ├── auth.ts
+│  │  ├── export.ts
+│  │  ├── list-view.ts
+│  │  └── money.ts
+│  ├── router.tsx
+│  ├── routes
+│  │  ├── __root.tsx
+│  │  ├── _app
+│  │  │  ├── accounting.tsx
+│  │  │  ├── agentic.tsx
+│  │  │  ├── ai.tsx
+│  │  │  ├── aml.tsx
+│  │  │  ├── analytics.tsx
+│  │  │  ├── bnpl.tsx
+│  │  │  ├── cards.tsx
+│  │  │  ├── cash-flow.tsx
+│  │  │  ├── compliance.tsx
+│  │  │  ├── copilot.tsx
+│  │  │  ├── crossborder.tsx
+│  │  │  ├── dunning.tsx
+│  │  │  ├── einvoicing.tsx
+│  │  │  ├── escrow.tsx
+│  │  │  ├── esg.tsx
+│  │  │  ├── fraud.tsx
+│  │  │  ├── gst-ai.tsx
+│  │  │  ├── gst-invoices.tsx
+│  │  │  ├── gst-returns.tsx
+│  │  │  ├── index.tsx
+│  │  │  ├── insurance.tsx
+│  │  │  ├── invoices.tsx
+│  │  │  ├── itc.tsx
+│  │  │  ├── kyb.tsx
+│  │  │  ├── kyc.tsx
+│  │  │  ├── ledger.tsx
+│  │  │  ├── lending.tsx
+│  │  │  ├── mandates.tsx
+│  │  │  ├── marketplace.tsx
+│  │  │  ├── messaging.tsx
+│  │  │  ├── offline.tsx
+│  │  │  ├── ondc.tsx
+│  │  │  ├── orchestration.tsx
+│  │  │  ├── payment-links.tsx
+│  │  │  ├── payments.tsx
+│  │  │  ├── payout-batches.tsx
+│  │  │  ├── payouts.tsx
+│  │  │  ├── payroll.tsx
+│  │  │  ├── plans.tsx
+│  │  │  ├── reconciliation.tsx
+│  │  │  ├── refunds.tsx
+│  │  │  ├── revrec.tsx
+│  │  │  ├── settings
+│  │  │  │  ├── api-keys.tsx
+│  │  │  │  └── merchant.tsx
+│  │  │  ├── settings.tsx
+│  │  │  ├── subscriptions.tsx
+│  │  │  ├── tds.tsx
+│  │  │  ├── virtual-accounts.tsx
+│  │  │  └── webhooks.tsx
+│  │  ├── _app.tsx
+│  │  └── sign-in.tsx
+│  ├── routeTree.gen.ts
+│  └── styles.css
+├── tsconfig.json
+└── vite.config.ts

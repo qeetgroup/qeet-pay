@@ -1,0 +1,1884 @@
+openapi: 3.1.0
+info:
+  title: Qeet Pay API
+  description: "Qeet Pay — India-first payments, billing and GST infrastructure (UPI\
+    \ / Cards / NACH). Programmatic `/v1` calls authenticate with a `qp_live_` / `qp_test_`\
+    \ API key via the `X-Api-Key` header; money is always in integer minor units (paise)."
+  contact:
+    name: Qeet Group
+    url: https://qeet.in
+  license:
+    name: Proprietary
+    url: https://qeet.in
+  version: v1
+servers:
+- url: http://localhost:4201
+  description: Local development
+- url: https://api.pay.qeet.in
+  description: Production
+security:
+- ApiKeyAuth: []
+tags:
+- name: Billing
+  description: "Plans, subscriptions, invoices and usage metering."
+- name: Payouts
+  description: Single and bulk payouts under maker-checker approval.
+- name: Lending
+  description: Working-capital advances repaid from settlements.
+- name: Mandates
+  description: Recurring mandates and idempotent mandate debits.
+- name: Revenue Recognition
+  description: IndAS 115 deferred-revenue schedules.
+- name: KYB
+  description: Merchant Know-Your-Business verification.
+- name: GST Invoicing
+  description: GST invoices and credit/debit notes.
+- name: Cards
+  description: Virtual expense/wallet cards.
+- name: E-Invoicing (IRN)
+  description: IRP registration for IRN + signed QR.
+- name: GST Returns
+  description: GSTR-1/GSTR-3B preparation and GSTN filing.
+- name: Messaging
+  description: WhatsApp/SMS/email templates and dispatch.
+- name: Payment Links
+  description: Shareable payment links — fixed or payer-entered amount.
+- name: AI
+  description: AI gateway decision audit — the trail every AI feature writes through
+    the §6.4 safety matrix.
+- name: Insurance
+  description: Embedded protection policies and claims.
+- name: Cross-Border
+  description: Export invoices and inward FX remittances (FIRA).
+- name: Merchants
+  description: Merchant onboarding and current-merchant profile.
+- name: Payments
+  description: "Accept payments (create, capture) and inbound provider webhooks."
+- name: Orchestration
+  description: Smart provider routing — scorecards and cost basis.
+- name: Copilot
+  description: "LLM copilots — treasury & cash-flow, reconciliation, and natural-language\
+    \ query over the merchant's own data. Every answer cites its figures, routes through\
+    \ the AI gateway, and is persisted for audit."
+- name: Platform
+  description: Request-identity introspection and health probes.
+- name: Reconciliation
+  description: Provider settlements and auto-reconciliation.
+- name: TDS / TCS
+  description: "Tax-at-source deductions, certificates and summaries."
+- name: Escrow
+  description: "Conditional hold, release-to-seller and refund."
+- name: Agentic MCP
+  description: Model-Context-Protocol tool manifest — the safe tools an AI agent may
+    call.
+- name: Input Tax Credit
+  description: Purchase invoices reconciled against GSTR-2B.
+- name: Analytics
+  description: "TPV, MRR/ARR, success rate and cash-flow forecasting."
+- name: Checkout
+  description: "Public hosted-checkout — pay a link by its code, no API key."
+- name: Marketplace
+  description: Seller registration and split settlements (TCS/TDS).
+- name: Messaging
+  description: WhatsApp/SMS/email templates and rendered dispatch (queued to qeet-notify
+    via the outbox); delivery callbacks.
+- name: Dunning
+  description: Failed-payment retry rules and attempt history.
+- name: ESG / Carbon
+  description: Per-transaction carbon footprint and offsets.
+- name: Accounting
+  description: "Export a period's ledger journal entries + GST invoices to Tally /\
+    \ Zoho Books / SAP Business One / a webhook, and manage connections."
+- name: Platform
+  description: Resolved request identity — the current merchant plus the Qeet ID JWT
+    subject/roles (null under an API key).
+- name: Ledger
+  description: Double-entry ledger accounts and balanced journal entries.
+- name: Virtual Accounts
+  description: Per-customer virtual accounts with auto-reconciled credits.
+- name: Webhooks
+  description: Webhook endpoint registration and delivery history.
+- name: BNPL
+  description: Buy-Now-Pay-Later installment agreements.
+- name: Analytics
+  description: "Business metrics — TPV, MRR waterfall, ARR, success rate, and settlement\
+    \ cash-flow forecasting."
+- name: Webhooks
+  description: Register webhook endpoints (event subscriptions + signing secret) and
+    view delivery history.
+- name: Merchants
+  description: Merchant onboarding (mints an API key + seeds the chart of accounts)
+    and the current-merchant profile.
+- name: Agentic Mandates
+  description: "AI-agent mandates — scoped, capped, revocable authority with a deterministic\
+    \ authorize decision."
+- name: Messaging — WhatsApp
+  description: "Inbound WhatsApp webhook + subscription command bot, and in-chat WhatsApp\
+    \ Pay collections (sandbox rail)."
+paths:
+  /v1/messaging/templates:
+    get:
+      tags:
+      - Messaging
+      operationId: listTemplates
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TemplateView"
+    put:
+      tags:
+      - Messaging
+      operationId: upsertTemplate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TemplateRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TemplateView"
+  /v1/accounting/connections:
+    get:
+      tags:
+      - Accounting
+      operationId: listConnections
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ConnectionView"
+    put:
+      tags:
+      - Accounting
+      operationId: upsertConnection
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectionRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ConnectionView"
+  /v1/webhooks/endpoints:
+    get:
+      tags:
+      - Webhooks
+      operationId: list
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EndpointView"
+    post:
+      tags:
+      - Webhooks
+      operationId: register
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EndpointView"
+  /v1/messaging/whatsapp/pay:
+    get:
+      tags:
+      - Messaging — WhatsApp
+      operationId: listPay
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PayCollectionView"
+    post:
+      tags:
+      - Messaging — WhatsApp
+      operationId: createPay
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WhatsAppPayRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PayCollectionView"
+  /v1/messaging/whatsapp/pay/{id}/confirm:
+    post:
+      tags:
+      - Messaging — WhatsApp
+      operationId: confirmPay
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PayCollectionView"
+  /v1/messaging/whatsapp/inbound:
+    get:
+      tags:
+      - Messaging — WhatsApp
+      operationId: listInbound
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InboundMessageView"
+    post:
+      tags:
+      - Messaging — WhatsApp
+      operationId: inbound
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InboundRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/InboundView"
+  /v1/messaging/dispatches/{dispatchId}/failed:
+    post:
+      tags:
+      - Messaging
+      operationId: failed
+      parameters:
+      - name: dispatchId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FailedRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DispatchView"
+  /v1/messaging/dispatches/{dispatchId}/delivered:
+    post:
+      tags:
+      - Messaging
+      operationId: delivered
+      parameters:
+      - name: dispatchId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeliveredRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DispatchView"
+  /v1/messaging/dispatch:
+    post:
+      tags:
+      - Messaging
+      operationId: dispatch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DispatchRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DispatchView"
+  /v1/merchants:
+    post:
+      tags:
+      - Merchants
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMerchantRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CreateMerchantResponse"
+  /v1/copilot/treasury/ask:
+    post:
+      tags:
+      - Copilot
+      operationId: treasuryAsk
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AskRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CopilotAnswer"
+  /v1/copilot/reconciliation/ask:
+    post:
+      tags:
+      - Copilot
+      operationId: reconciliationAsk
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AskRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CopilotAnswer"
+  /v1/copilot/query:
+    post:
+      tags:
+      - Copilot
+      operationId: query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AskRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CopilotAnswer"
+  /v1/agentic/mandates:
+    get:
+      tags:
+      - Agentic Mandates
+      operationId: list_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AgentMandateView"
+    post:
+      tags:
+      - Agentic Mandates
+      operationId: issue
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentMandateIssueRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AgentMandateView"
+  /v1/agentic/mandates/{mandateId}/revoke:
+    post:
+      tags:
+      - Agentic Mandates
+      operationId: revoke
+      parameters:
+      - name: mandateId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RevokeRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AgentMandateView"
+  /v1/agentic/mandates/{mandateId}/authorize:
+    post:
+      tags:
+      - Agentic Mandates
+      operationId: authorize
+      parameters:
+      - name: mandateId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthorizeRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AuthorizationDecision"
+  /v1/accounting/exports:
+    get:
+      tags:
+      - Accounting
+      operationId: listExports
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExportView"
+    post:
+      tags:
+      - Accounting
+      operationId: createExport
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateExportRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ExportView"
+  /v1/webhooks/endpoints/{id}/deliveries:
+    get:
+      tags:
+      - Webhooks
+      operationId: deliveries
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeliveryView"
+  /v1/messaging/dispatches:
+    get:
+      tags:
+      - Messaging
+      operationId: listDispatches
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DispatchView"
+  /v1/messaging/dispatches/{dispatchId}:
+    get:
+      tags:
+      - Messaging
+      operationId: getDispatch
+      parameters:
+      - name: dispatchId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DispatchView"
+  /v1/merchants/me:
+    get:
+      tags:
+      - Merchants
+      operationId: me
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MerchantView"
+  /v1/me:
+    get:
+      tags:
+      - Platform
+      operationId: me_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+  /v1/copilot/conversations:
+    get:
+      tags:
+      - Copilot
+      operationId: conversations
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ConversationSummary"
+  /v1/copilot/conversations/{conversationId}:
+    get:
+      tags:
+      - Copilot
+      operationId: conversation
+      parameters:
+      - name: conversationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ConversationView"
+  /v1/analytics/tpv:
+    get:
+      tags:
+      - Analytics
+      operationId: tpv
+      parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: granularity
+        in: query
+        required: false
+        schema:
+          type: string
+          default: DAY
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TpvBucket"
+  /v1/analytics/success-rate:
+    get:
+      tags:
+      - Analytics
+      operationId: successRate
+      parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: method
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SuccessRate"
+  /v1/analytics/mrr:
+    get:
+      tags:
+      - Analytics
+      operationId: mrr
+      parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MrrWaterfallRow"
+  /v1/analytics/compliance-health:
+    get:
+      tags:
+      - Analytics
+      operationId: complianceHealth
+      parameters:
+      - name: windowDays
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 30
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ComplianceHealth"
+  /v1/analytics/cash-flow-forecast:
+    get:
+      tags:
+      - Analytics
+      operationId: cashFlowForecast
+      parameters:
+      - name: horizonDays
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 30
+      - name: windowDays
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 30
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CashFlowForecast"
+  /v1/analytics/arr:
+    get:
+      tags:
+      - Analytics
+      operationId: arr
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ArrView"
+  /v1/ai/health:
+    get:
+      tags:
+      - AI
+      operationId: health
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/GatewayHealth"
+  /v1/ai/decisions:
+    get:
+      tags:
+      - AI
+      operationId: list_2
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AiDecisionSummary"
+  /v1/ai/decisions/{decisionId}:
+    get:
+      tags:
+      - AI
+      operationId: get
+      parameters:
+      - name: decisionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AiDecisionView"
+  /v1/agentic/mcp/manifest:
+    get:
+      tags:
+      - Agentic MCP
+      operationId: manifest
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/McpManifest"
+  /v1/agentic/mandates/{mandateId}:
+    get:
+      tags:
+      - Agentic Mandates
+      operationId: get_1
+      parameters:
+      - name: mandateId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MandateDetail"
+  /v1/accounting/exports/{id}:
+    get:
+      tags:
+      - Accounting
+      operationId: getExport
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ExportView"
+  /v1/accounting/exports/{id}/download:
+    get:
+      tags:
+      - Accounting
+      operationId: download
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+  /v1/webhooks/endpoints/{id}:
+    delete:
+      tags:
+      - Webhooks
+      operationId: disable
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+components:
+  schemas:
+    TemplateRequest:
+      type: object
+      properties:
+        templateKey:
+          type: string
+          minLength: 1
+        channel:
+          type: string
+          enum:
+          - WHATSAPP
+          - SMS
+          - EMAIL
+        body:
+          type: string
+          minLength: 1
+      required:
+      - body
+      - channel
+      - templateKey
+    TemplateView:
+      type: object
+      properties:
+        id:
+          type: string
+        templateKey:
+          type: string
+        channel:
+          type: string
+        body:
+          type: string
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    ConnectionRequest:
+      type: object
+      properties:
+        target:
+          type: string
+          minLength: 1
+        enabled:
+          type: boolean
+        webhookUrl:
+          type: string
+        zohoOrganizationId:
+          type: string
+      required:
+      - target
+    ConnectionView:
+      type: object
+      properties:
+        id:
+          type: string
+        target:
+          type: string
+        enabled:
+          type: boolean
+        webhookUrl:
+          type: string
+        zohoOrganizationId:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+    RegisterRequest:
+      type: object
+      properties:
+        url:
+          type: string
+          minLength: 1
+        events:
+          type: string
+        signingSecret:
+          type: string
+          minLength: 1
+      required:
+      - signingSecret
+      - url
+    EndpointView:
+      type: object
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+        events:
+          type: string
+        status:
+          type: string
+    WhatsAppPayRequest:
+      type: object
+      properties:
+        payerPhone:
+          type: string
+        payerVpa:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        description:
+          type: string
+        relatedRef:
+          type: string
+      required:
+      - amountMinor
+    PayCollectionView:
+      type: object
+      properties:
+        id:
+          type: string
+        payerPhone:
+          type: string
+        payerVpa:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        status:
+          type: string
+        description:
+          type: string
+        providerRef:
+          type: string
+        ledgerEntryId:
+          type: string
+        relatedRef:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        confirmedAt:
+          type: string
+          format: date-time
+    ConfirmRequest:
+      type: object
+      properties:
+        providerRef:
+          type: string
+        success:
+          type: boolean
+    InboundRequest:
+      type: object
+      properties:
+        from:
+          type: string
+          minLength: 1
+        text:
+          type: string
+        messageId:
+          type: string
+          minLength: 1
+      required:
+      - from
+      - messageId
+    InboundView:
+      type: object
+      properties:
+        messageId:
+          type: string
+        from:
+          type: string
+        command:
+          type: string
+        processed:
+          type: boolean
+        reply:
+          $ref: "#/components/schemas/ReplyView"
+    ReplyView:
+      type: object
+      properties:
+        dispatchId:
+          type: string
+        channel:
+          type: string
+        recipient:
+          type: string
+        body:
+          type: string
+        status:
+          type: string
+    FailedRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          minLength: 1
+      required:
+      - reason
+    DispatchView:
+      type: object
+      properties:
+        id:
+          type: string
+        templateKey:
+          type: string
+        channel:
+          type: string
+        recipient:
+          type: string
+        renderedBody:
+          type: string
+        status:
+          type: string
+        providerRef:
+          type: string
+        relatedRef:
+          type: string
+        failureReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        sentAt:
+          type: string
+          format: date-time
+    DeliveredRequest:
+      type: object
+      properties:
+        providerRef:
+          type: string
+          minLength: 1
+      required:
+      - providerRef
+    DispatchRequest:
+      type: object
+      properties:
+        templateKey:
+          type: string
+          minLength: 1
+        channel:
+          type: string
+          enum:
+          - WHATSAPP
+          - SMS
+          - EMAIL
+        recipient:
+          type: string
+          minLength: 1
+        variables:
+          type: object
+          additionalProperties:
+            type: string
+        relatedRef:
+          type: string
+      required:
+      - channel
+      - recipient
+      - templateKey
+    CreateMerchantRequest:
+      type: object
+      properties:
+        slug:
+          type: string
+          minLength: 1
+        name:
+          type: string
+          minLength: 1
+      required:
+      - name
+      - slug
+    CreateMerchantResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+        apiKey:
+          type: string
+    AskRequest:
+      type: object
+      properties:
+        conversationId:
+          type: string
+          format: uuid
+        question:
+          type: string
+          minLength: 1
+      required:
+      - question
+    CopilotAnswer:
+      type: object
+      properties:
+        conversationId:
+          type: string
+          format: uuid
+        messageId:
+          type: string
+          format: uuid
+        surface:
+          type: string
+        question:
+          type: string
+        answer:
+          type: string
+        figures:
+          type: array
+          items:
+            $ref: "#/components/schemas/Figure"
+        citations:
+          type: array
+          items:
+            type: string
+        confidence:
+          type: number
+          format: double
+        fellBack:
+          type: boolean
+        requiresHumanReview:
+          type: boolean
+        aiDecisionId:
+          type: string
+          format: uuid
+        model:
+          type: string
+        sandbox:
+          type: boolean
+    Figure:
+      type: object
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        value: {}
+        unit:
+          type: string
+    AgentMandateIssueRequest:
+      type: object
+      properties:
+        agentId:
+          type: string
+          minLength: 1
+        label:
+          type: string
+        maxTxnMinor:
+          type: integer
+          format: int64
+        cumulativeCapMinor:
+          type: integer
+          format: int64
+        allowedOperations:
+          type: array
+          items:
+            type: string
+        allowedPayees:
+          type: array
+          items:
+            type: string
+        validFrom:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+      required:
+      - agentId
+      - cumulativeCapMinor
+      - maxTxnMinor
+    AgentMandateView:
+      type: object
+      properties:
+        id:
+          type: string
+        agentId:
+          type: string
+        label:
+          type: string
+        maxTxnMinor:
+          type: integer
+          format: int64
+        cumulativeCapMinor:
+          type: integer
+          format: int64
+        spentMinor:
+          type: integer
+          format: int64
+        remainingMinor:
+          type: integer
+          format: int64
+        allowedOperations:
+          type: array
+          items:
+            type: string
+        allowedPayees:
+          type: array
+          items:
+            type: string
+        validFrom:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        revokedAt:
+          type: string
+          format: date-time
+    RevokeRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+    AuthorizeRequest:
+      type: object
+      properties:
+        operation:
+          type: string
+          minLength: 1
+        payeeRef:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        capture:
+          type: boolean
+        idempotencyKey:
+          type: string
+      required:
+      - amountMinor
+      - operation
+    AuthorizationDecision:
+      type: object
+      properties:
+        mandateId:
+          type: string
+        allowed:
+          type: boolean
+        reason:
+          type: string
+        operation:
+          type: string
+        payeeRef:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        spentMinor:
+          type: integer
+          format: int64
+        remainingMinor:
+          type: integer
+          format: int64
+        useId:
+          type: string
+    CreateExportRequest:
+      type: object
+      properties:
+        target:
+          type: string
+          minLength: 1
+        periodStart:
+          type: string
+          format: date-time
+        periodEnd:
+          type: string
+          format: date-time
+      required:
+      - periodEnd
+      - periodStart
+      - target
+    ExportView:
+      type: object
+      properties:
+        id:
+          type: string
+        target:
+          type: string
+        periodStart:
+          type: string
+          format: date-time
+        periodEnd:
+          type: string
+          format: date-time
+        status:
+          type: string
+        recordCount:
+          type: integer
+          format: int32
+        externalRef:
+          type: string
+        detail:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+    DeliveryView:
+      type: object
+      properties:
+        id:
+          type: string
+        eventType:
+          type: string
+        status:
+          type: string
+        attemptCount:
+          type: integer
+          format: int32
+        lastResponseCode:
+          type: integer
+          format: int32
+        lastError:
+          type: string
+        deliveredAt:
+          type: string
+          format: date-time
+    InboundMessageView:
+      type: object
+      properties:
+        id:
+          type: string
+        messageId:
+          type: string
+        from:
+          type: string
+        body:
+          type: string
+        command:
+          type: string
+        receivedAt:
+          type: string
+          format: date-time
+    MerchantView:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+    MeResponse:
+      type: object
+      properties:
+        merchantId:
+          type: string
+        subject:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        authenticated:
+          type: boolean
+    ConversationSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        surface:
+          type: string
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ConversationView:
+      type: object
+      properties:
+        id:
+          type: string
+        surface:
+          type: string
+        title:
+          type: string
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessageView"
+    MessageView:
+      type: object
+      properties:
+        id:
+          type: string
+        role:
+          type: string
+        content:
+          type: string
+        figuresJson:
+          type: string
+        confidence:
+          type: number
+          format: double
+        fellBack:
+          type: boolean
+        aiDecisionId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    TpvBucket:
+      type: object
+      properties:
+        period:
+          type: string
+          format: date-time
+        totalMinor:
+          type: integer
+          format: int64
+        txCount:
+          type: integer
+          format: int64
+    SuccessRate:
+      type: object
+      properties:
+        captured:
+          type: integer
+          format: int64
+        failed:
+          type: integer
+          format: int64
+        ratePercent:
+          type: number
+          format: double
+    MrrWaterfallRow:
+      type: object
+      properties:
+        period:
+          type: string
+          format: date-time
+        newMrr:
+          type: integer
+          format: int64
+        expansion:
+          type: integer
+          format: int64
+        contraction:
+          type: integer
+          format: int64
+        churn:
+          type: integer
+          format: int64
+        reactivation:
+          type: integer
+          format: int64
+        netChange:
+          type: integer
+          format: int64
+    ComplianceHealth:
+      type: object
+      properties:
+        merchantId:
+          type: string
+          format: uuid
+        generatedAt:
+          type: string
+          format: date-time
+        overallStatus:
+          type: string
+        reconciliation:
+          $ref: "#/components/schemas/ReconHealth"
+        filing:
+          $ref: "#/components/schemas/FilingSummary"
+        fraud:
+          $ref: "#/components/schemas/FraudPosture"
+        kyb:
+          $ref: "#/components/schemas/KybOnboarding"
+        kpis:
+          $ref: "#/components/schemas/FinancialKpis"
+    FilingSummary:
+      type: object
+      properties:
+        totalReturns:
+          type: integer
+          format: int32
+        filedCount:
+          type: integer
+          format: int32
+        preparedCount:
+          type: integer
+          format: int32
+        draftCount:
+          type: integer
+          format: int32
+        errorCount:
+          type: integer
+          format: int32
+        totalTaxFiledMinor:
+          type: integer
+          format: int64
+        latestFiledPeriod:
+          type: string
+        status:
+          type: string
+        asOf:
+          type: string
+          format: date-time
+    FinancialKpis:
+      type: object
+      properties:
+        currentMrrMinor:
+          type: integer
+          format: int64
+        currentArrMinor:
+          type: integer
+          format: int64
+        trailingTpvMinor:
+          type: integer
+          format: int64
+        trailingSuccessRatePercent:
+          type: number
+          format: double
+        windowDays:
+          type: integer
+          format: int32
+        asOf:
+          type: string
+          format: date-time
+    FraudPosture:
+      type: object
+      properties:
+        scoringEnabled:
+          type: boolean
+        mode:
+          type: string
+        description:
+          type: string
+        asOf:
+          type: string
+          format: date-time
+    KybOnboarding:
+      type: object
+      properties:
+        overallStatus:
+          type: string
+        panStatus:
+          type: string
+        gstinStatus:
+          type: string
+        bankStatus:
+          type: string
+        onboardingComplete:
+          type: boolean
+        verifiedAt:
+          type: string
+          format: date-time
+        asOf:
+          type: string
+          format: date-time
+    ReconHealth:
+      type: object
+      properties:
+        totalSettlements:
+          type: integer
+          format: int32
+        reconciledCount:
+          type: integer
+          format: int32
+        discrepancyCount:
+          type: integer
+          format: int32
+        pendingCount:
+          type: integer
+          format: int32
+        nodalBalanceMinor:
+          type: integer
+          format: int64
+        nodalHealthy:
+          type: boolean
+        status:
+          type: string
+        asOf:
+          type: string
+          format: date-time
+    CashFlowForecast:
+      type: object
+      properties:
+        startingBalanceMinor:
+          type: integer
+          format: int64
+        avgDailyNetMinor:
+          type: integer
+          format: int64
+        horizonDays:
+          type: integer
+          format: int32
+        projectedEndBalanceMinor:
+          type: integer
+          format: int64
+        recommendation:
+          type: string
+        points:
+          type: array
+          items:
+            $ref: "#/components/schemas/ForecastPoint"
+    ForecastPoint:
+      type: object
+      properties:
+        day:
+          type: integer
+          format: int32
+        date:
+          type: string
+          format: date
+        projectedBalanceMinor:
+          type: integer
+          format: int64
+    ArrView:
+      type: object
+      properties:
+        mrrMinor:
+          type: integer
+          format: int64
+        arrMinor:
+          type: integer
+          format: int64
+    GatewayHealth:
+      type: object
+      properties:
+        status:
+          type: string
+        model:
+          type: string
+        sandbox:
+          type: boolean
+    AiDecisionSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        feature:
+          type: string
+        model:
+          type: string
+        confidence:
+          type: number
+          format: double
+        humanReviewed:
+          type: boolean
+        fellBack:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    AiDecisionView:
+      type: object
+      properties:
+        id:
+          type: string
+        feature:
+          type: string
+        model:
+          type: string
+        inputHash:
+          type: string
+        maskedInput:
+          type: string
+        outputJson:
+          type: string
+        confidence:
+          type: number
+          format: double
+        humanReviewed:
+          type: boolean
+        fellBack:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    McpManifest:
+      type: object
+      properties:
+        protocolVersion:
+          type: string
+        server:
+          type: string
+        version:
+          type: string
+        description:
+          type: string
+        tools:
+          type: array
+          items:
+            $ref: "#/components/schemas/McpTool"
+    McpTool:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        requiredScope:
+          type: string
+        inputSchema:
+          type: object
+          additionalProperties: {}
+    MandateDetail:
+      type: object
+      properties:
+        mandate:
+          $ref: "#/components/schemas/AgentMandateView"
+        uses:
+          type: array
+          items:
+            $ref: "#/components/schemas/UseView"
+    UseView:
+      type: object
+      properties:
+        id:
+          type: string
+        operation:
+          type: string
+        payeeRef:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        allowed:
+          type: boolean
+        reason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      description: Programmatic API key (`qp_live_…` / `qp_test_…`) presented as the
+        `X-Api-Key` header.
+      name: X-Api-Key
+      in: header

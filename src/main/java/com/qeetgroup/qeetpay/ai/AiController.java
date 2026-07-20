@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.ai;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Instant;
 import java.util.List;
@@ -46,6 +47,7 @@ public class AiController {
     // ── Records ──────────────────────────────────────────────────────────────
 
     /** List row — the safety-matrix outcome without the (potentially large) input/output payloads. */
+    @Schema(name = "AiDecisionSummary")
     public record DecisionSummary(
             String id,
             String feature,
@@ -67,6 +69,7 @@ public class AiController {
     }
 
     /** Full audit view — adds the masked input, its hash, and the returned decision payload. */
+    @Schema(name = "AiDecisionView")
     public record DecisionView(
             String id,
             String feature,

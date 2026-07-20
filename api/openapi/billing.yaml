@@ -1,0 +1,982 @@
+openapi: 3.1.0
+info:
+  title: Qeet Pay API
+  description: "Qeet Pay — India-first payments, billing and GST infrastructure (UPI\
+    \ / Cards / NACH). Programmatic `/v1` calls authenticate with a `qp_live_` / `qp_test_`\
+    \ API key via the `X-Api-Key` header; money is always in integer minor units (paise)."
+  contact:
+    name: Qeet Group
+    url: https://qeet.in
+  license:
+    name: Proprietary
+    url: https://qeet.in
+  version: v1
+servers:
+- url: http://localhost:4201
+  description: Local development
+- url: https://api.pay.qeet.in
+  description: Production
+security:
+- ApiKeyAuth: []
+tags:
+- name: Billing
+  description: "Plans, subscriptions, invoices and usage metering."
+- name: Payouts
+  description: Single and bulk payouts under maker-checker approval.
+- name: Lending
+  description: Working-capital advances repaid from settlements.
+- name: Mandates
+  description: Recurring mandates and idempotent mandate debits.
+- name: Revenue Recognition
+  description: IndAS 115 deferred-revenue schedules.
+- name: KYB
+  description: Merchant Know-Your-Business verification.
+- name: GST Invoicing
+  description: GST invoices and credit/debit notes.
+- name: Cards
+  description: Virtual expense/wallet cards.
+- name: E-Invoicing (IRN)
+  description: IRP registration for IRN + signed QR.
+- name: GST Returns
+  description: GSTR-1/GSTR-3B preparation and GSTN filing.
+- name: Messaging
+  description: WhatsApp/SMS/email templates and dispatch.
+- name: Payment Links
+  description: Shareable payment links — fixed or payer-entered amount.
+- name: Insurance
+  description: Embedded protection policies and claims.
+- name: Billing
+  description: "Plans, subscriptions, invoices and usage metering, with lifecycle\
+    \ actions (upgrade/downgrade/pause/resume/cancel)."
+- name: Cross-Border
+  description: Export invoices and inward FX remittances (FIRA).
+- name: Merchants
+  description: Merchant onboarding and current-merchant profile.
+- name: Payments
+  description: "Accept payments (create, capture) and inbound provider webhooks."
+- name: Orchestration
+  description: Smart provider routing — scorecards and cost basis.
+- name: Platform
+  description: Request-identity introspection and health probes.
+- name: Reconciliation
+  description: Provider settlements and auto-reconciliation.
+- name: TDS / TCS
+  description: "Tax-at-source deductions, certificates and summaries."
+- name: Escrow
+  description: "Conditional hold, release-to-seller and refund."
+- name: Input Tax Credit
+  description: Purchase invoices reconciled against GSTR-2B.
+- name: Analytics
+  description: "TPV, MRR/ARR, success rate and cash-flow forecasting."
+- name: Dunning
+  description: Configure failed-payment retry rules and view dunning attempt history.
+- name: Checkout
+  description: "Public hosted-checkout — pay a link by its code, no API key."
+- name: Marketplace
+  description: Seller registration and split settlements (TCS/TDS).
+- name: Dunning
+  description: Failed-payment retry rules and attempt history.
+- name: ESG / Carbon
+  description: Per-transaction carbon footprint and offsets.
+- name: Ledger
+  description: Double-entry ledger accounts and balanced journal entries.
+- name: Virtual Accounts
+  description: Per-customer virtual accounts with auto-reconciled credits.
+- name: Webhooks
+  description: Webhook endpoint registration and delivery history.
+- name: BNPL
+  description: Buy-Now-Pay-Later installment agreements.
+- name: Revenue Recognition
+  description: "IndAS 115 revenue schedules — defer revenue, recognise due periods,\
+    \ and read schedules with their slices."
+paths:
+  /v1/subscriptions:
+    get:
+      tags:
+      - Billing
+      operationId: listSubscriptions
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubscriptionView"
+    post:
+      tags:
+      - Billing
+      operationId: createSubscription
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubscriptionRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SubscriptionView"
+  /v1/subscriptions/{id}/upgrade:
+    post:
+      tags:
+      - Billing
+      operationId: upgradeSubscription
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpgradePlanRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UpgradeView"
+  /v1/subscriptions/{id}/resume:
+    post:
+      tags:
+      - Billing
+      operationId: resumeSubscription
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SubscriptionView"
+  /v1/subscriptions/{id}/pause:
+    post:
+      tags:
+      - Billing
+      operationId: pauseSubscription
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SubscriptionView"
+  /v1/subscriptions/{id}/downgrade:
+    post:
+      tags:
+      - Billing
+      operationId: downgradeSubscription
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpgradePlanRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SubscriptionView"
+  /v1/subscriptions/{id}/cancel:
+    post:
+      tags:
+      - Billing
+      operationId: cancelSubscription
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: atPeriodEnd
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SubscriptionView"
+  /v1/revrec/schedules:
+    get:
+      tags:
+      - Revenue Recognition
+      operationId: list
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScheduleSummary"
+    post:
+      tags:
+      - Revenue Recognition
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateScheduleRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ScheduleView"
+  /v1/revrec/schedules/{scheduleId}/recognize:
+    post:
+      tags:
+      - Revenue Recognition
+      operationId: recognize
+      parameters:
+      - name: scheduleId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: asOf
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ScheduleView"
+  /v1/plans:
+    get:
+      tags:
+      - Billing
+      operationId: listPlans
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlanView"
+    post:
+      tags:
+      - Billing
+      operationId: createPlan
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePlanRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PlanView"
+  /v1/invoices/{id}/pay:
+    post:
+      tags:
+      - Billing
+      operationId: payInvoice
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/dunning/subscriptions/{subscriptionId}/trigger-smart:
+    post:
+      tags:
+      - Dunning
+      operationId: triggerSmart
+      parameters:
+      - name: subscriptionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DunningClassifyRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AttemptView"
+  /v1/dunning/subscriptions/{subscriptionId}/ai-recommend:
+    post:
+      tags:
+      - Dunning
+      operationId: aiRecommend
+      parameters:
+      - name: subscriptionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiRecommendRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AiRecommendView"
+  /v1/dunning/rules:
+    get:
+      tags:
+      - Dunning
+      operationId: listRules
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DunningRuleView"
+    post:
+      tags:
+      - Dunning
+      operationId: createRule
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DunningCreateRuleRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DunningRuleView"
+  /v1/dunning/classify:
+    post:
+      tags:
+      - Dunning
+      operationId: classify
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DunningClassifyRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ClassificationView"
+  /v1/billing/usage:
+    post:
+      tags:
+      - Billing
+      operationId: ingestUsage
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UsageRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+  /v1/subscriptions/{id}:
+    get:
+      tags:
+      - Billing
+      operationId: getSubscription
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SubscriptionView"
+  /v1/revrec/schedules/{scheduleId}:
+    get:
+      tags:
+      - Revenue Recognition
+      operationId: get
+      parameters:
+      - name: scheduleId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ScheduleView"
+  /v1/invoices:
+    get:
+      tags:
+      - Billing
+      operationId: listInvoices
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BillingInvoiceView"
+  /v1/invoices/{id}:
+    get:
+      tags:
+      - Billing
+      operationId: getInvoice
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/BillingInvoiceView"
+  /v1/dunning/subscriptions/{subscriptionId}/attempts:
+    get:
+      tags:
+      - Dunning
+      operationId: attempts
+      parameters:
+      - name: subscriptionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttemptView"
+  /v1/billing/usage/{subscriptionId}:
+    get:
+      tags:
+      - Billing
+      operationId: getUsage
+      parameters:
+      - name: subscriptionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: metricKey
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UsageSummary"
+components:
+  schemas:
+    CreateSubscriptionRequest:
+      type: object
+      properties:
+        planId:
+          type: string
+          format: uuid
+        customerRef:
+          type: string
+          minLength: 1
+      required:
+      - customerRef
+      - planId
+    SubscriptionView:
+      type: object
+      properties:
+        id:
+          type: string
+        planId:
+          type: string
+        status:
+          type: string
+        firstInvoiceId:
+          type: string
+        cancelAtPeriodEnd:
+          type: boolean
+    UpgradePlanRequest:
+      type: object
+      properties:
+        newPlanId:
+          type: string
+          format: uuid
+      required:
+      - newPlanId
+    UpgradeView:
+      type: object
+      properties:
+        subscriptionId:
+          type: string
+        newPlanId:
+          type: string
+        prorationMinor:
+          type: integer
+          format: int64
+        prorationInvoiceId:
+          type: string
+    CreateScheduleRequest:
+      type: object
+      properties:
+        sourceType:
+          type: string
+          minLength: 1
+        sourceRef:
+          type: string
+        totalMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        method:
+          type: string
+          enum:
+          - STRAIGHT_LINE
+          - IMMEDIATE
+        start:
+          type: string
+          format: date
+        periods:
+          type: integer
+          format: int32
+      required:
+      - currency
+      - sourceType
+      - totalMinor
+    EntryView:
+      type: object
+      properties:
+        id:
+          type: string
+        seq:
+          type: integer
+          format: int32
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+        amountMinor:
+          type: integer
+          format: int64
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+        recognizedAt:
+          type: string
+          format: date-time
+    ScheduleSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        sourceType:
+          type: string
+        sourceRef:
+          type: string
+        currency:
+          type: string
+        totalMinor:
+          type: integer
+          format: int64
+        recognizedMinor:
+          type: integer
+          format: int64
+        method:
+          type: string
+        status:
+          type: string
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+    ScheduleView:
+      type: object
+      properties:
+        schedule:
+          $ref: "#/components/schemas/ScheduleSummary"
+        deferralEntryId:
+          type: string
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/EntryView"
+    CreatePlanRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          minLength: 1
+        name:
+          type: string
+          minLength: 1
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        interval:
+          type: string
+          enum:
+          - MONTH
+          - YEAR
+        pricingModel:
+          type: string
+          enum:
+          - FLAT
+          - PER_UNIT
+          - TIERED
+          - VOLUME
+          - HYBRID
+        tiers:
+          type: string
+        usageMetricKey:
+          type: string
+        trialDays:
+          type: integer
+          format: int32
+      required:
+      - code
+      - currency
+      - interval
+      - name
+    PlanView:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        interval:
+          type: string
+        pricingModel:
+          type: string
+        trialDays:
+          type: integer
+          format: int32
+    DunningClassifyRequest:
+      type: object
+      properties:
+        failureCode:
+          type: string
+          minLength: 1
+      required:
+      - failureCode
+    AttemptView:
+      type: object
+      properties:
+        id:
+          type: string
+        subscriptionId:
+          type: string
+        attemptNumber:
+          type: integer
+          format: int32
+        scheduledAt:
+          type: string
+          format: date-time
+        attemptedAt:
+          type: string
+          format: date-time
+        result:
+          type: string
+        failureReason:
+          type: string
+        failureCategory:
+          type: string
+        recommendedDelayHours:
+          type: integer
+          format: int32
+        recommendedChannels:
+          type: string
+        classificationRationale:
+          type: string
+    AiRecommendRequest:
+      type: object
+      properties:
+        failureCode:
+          type: string
+          minLength: 1
+        daysUntilPayday:
+          type: integer
+          format: int32
+        engagementScore:
+          type: number
+          format: double
+        preferredChannel:
+          type: string
+        preferredLanguage:
+          type: string
+        customerContactHint:
+          type: string
+      required:
+      - failureCode
+    AiRecommendView:
+      type: object
+      properties:
+        subscriptionId:
+          type: string
+        category:
+          type: string
+        retryable:
+          type: boolean
+        recommendedDelayHours:
+          type: integer
+          format: int32
+        channelOrder:
+          type: array
+          items:
+            type: string
+        messageTone:
+          type: string
+        reasons:
+          type: array
+          items:
+            type: string
+        aiAssisted:
+          type: boolean
+        decisionId:
+          type: string
+    DunningCreateRuleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        failureCodePattern:
+          type: string
+        retryIntervalHours:
+          type: integer
+          format: int32
+          minimum: 1
+        maxAttempts:
+          type: integer
+          format: int32
+          minimum: 1
+        notifyChannels:
+          type: string
+      required:
+      - name
+    DunningRuleView:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        failureCodePattern:
+          type: string
+        retryIntervalHours:
+          type: integer
+          format: int32
+        maxAttempts:
+          type: integer
+          format: int32
+        notifyChannels:
+          type: string
+        active:
+          type: boolean
+    ClassificationView:
+      type: object
+      properties:
+        category:
+          type: string
+        retryable:
+          type: boolean
+        recommendedDelayHours:
+          type: integer
+          format: int32
+        recommendedChannels:
+          type: string
+        rationale:
+          type: string
+    UsageRequest:
+      type: object
+      properties:
+        subscriptionId:
+          type: string
+          format: uuid
+        metricKey:
+          type: string
+          minLength: 1
+        quantity:
+          type: integer
+          format: int64
+      required:
+      - metricKey
+      - subscriptionId
+    BillingInvoiceView:
+      type: object
+      properties:
+        id:
+          type: string
+        subscriptionId:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+    UsageSummary:
+      type: object
+      properties:
+        subscriptionId:
+          type: string
+        metricKey:
+          type: string
+        totalQuantity:
+          type: integer
+          format: int64
+        from:
+          type: string
+        to:
+          type: string
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      description: Programmatic API key (`qp_live_…` / `qp_test_…`) presented as the
+        `X-Api-Key` header.
+      name: X-Api-Key
+      in: header

@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.checkout;
 
 import com.qeetgroup.qeetpay.payments.PaymentMethod;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -54,6 +55,7 @@ public class CheckoutController {
      * open (payer-entered) links and must be positive when present; {@code customerName}/{@code customerEmail}
      * are optional and captured best-effort.
      */
+    @Schema(name = "CheckoutPayRequest")
     public record PayRequest(
             @NotNull PaymentMethod method,
             @Positive Long amountMinor, // required only for open-amount links

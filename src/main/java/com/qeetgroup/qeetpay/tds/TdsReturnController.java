@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.tds;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -77,8 +78,10 @@ public class TdsReturnController {
 
     // ── Records ──────────────────────────────────────────────────────────────
 
+    @Schema(name = "TdsPrepareRequest")
     public record PrepareRequest(TdsReturnForm form, @NotBlank String quarter) {}
 
+    @Schema(name = "TdsReturnLineView")
     public record ReturnLineView(
             String deducteeName, String deducteePan, String section, long grossMinor, int rateBps,
             long taxMinor, LocalDate deductedOn, String transactionRef) {
@@ -89,6 +92,7 @@ public class TdsReturnController {
         }
     }
 
+    @Schema(name = "TdsReturnSummary")
     public record ReturnSummary(
             String id, String form, String fy, String quarter, String status, int deducteeCount,
             int deductionCount, long totalGrossMinor, long totalTaxMinor, String bsrCode,
@@ -104,6 +108,7 @@ public class TdsReturnController {
         }
     }
 
+    @Schema(name = "TdsReturnView")
     public record ReturnView(ReturnSummary ret, List<ReturnLineView> lines) {
         static ReturnView of(TdsReturnService.ReturnWithLines r) {
             return new ReturnView(

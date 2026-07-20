@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.crossborder;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -110,6 +111,7 @@ public class OutboundRemittanceController {
         }
     }
 
+    @Schema(name = "OutboundRemittanceView")
     public record RemittanceView(
             String id, String beneficiaryName, String beneficiarySwift, String beneficiaryCountry,
             String purposeCode, String currency, long foreignAmountMinor, BigDecimal fxRate,
@@ -126,6 +128,7 @@ public class OutboundRemittanceController {
         }
     }
 
+    @Schema(name = "RemittanceEventView")
     public record EventView(String id, String type, long amountMinor, String note, Instant createdAt) {
         static EventView of(OutboundRemittanceEvent e) {
             return new EventView(

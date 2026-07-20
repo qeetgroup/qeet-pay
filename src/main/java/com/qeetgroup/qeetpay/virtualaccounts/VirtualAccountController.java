@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.virtualaccounts;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -77,6 +78,7 @@ public class VirtualAccountController {
             String payerName,
             String payerRef) {}
 
+    @Schema(name = "VirtualAccountView")
     public record AccountView(
             String id, String customerRef, String vaNumber, String ifsc, String status,
             Instant createdAt, Instant closedAt) {

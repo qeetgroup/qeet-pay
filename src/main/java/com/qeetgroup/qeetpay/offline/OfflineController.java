@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.offline;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -150,6 +151,7 @@ public class OfflineController {
 
     public record CreateWalletRequest(@NotBlank String customerRef, String currency) {}
 
+    @Schema(name = "OfflineAmountRequest")
     public record AmountRequest(@NotNull @Positive Long amountMinor) {}
 
     public record Intent123Request(

@@ -1,0 +1,1529 @@
+openapi: 3.1.0
+info:
+  title: Qeet Pay API
+  description: "Qeet Pay — India-first payments, billing and GST infrastructure (UPI\
+    \ / Cards / NACH). Programmatic `/v1` calls authenticate with a `qp_live_` / `qp_test_`\
+    \ API key via the `X-Api-Key` header; money is always in integer minor units (paise)."
+  contact:
+    name: Qeet Group
+    url: https://qeet.in
+  license:
+    name: Proprietary
+    url: https://qeet.in
+  version: v1
+servers:
+- url: http://localhost:4201
+  description: Local development
+- url: https://api.pay.qeet.in
+  description: Production
+security:
+- ApiKeyAuth: []
+tags:
+- name: Billing
+  description: "Plans, subscriptions, invoices and usage metering."
+- name: Payouts
+  description: Single and bulk payouts under maker-checker approval.
+- name: Lending
+  description: Working-capital advances repaid from settlements.
+- name: Mandates
+  description: Recurring mandates and idempotent mandate debits.
+- name: Revenue Recognition
+  description: IndAS 115 deferred-revenue schedules.
+- name: KYB
+  description: Merchant Know-Your-Business verification.
+- name: GST Invoicing
+  description: GST invoices and credit/debit notes.
+- name: Cards
+  description: Virtual expense/wallet cards.
+- name: TDS / TCS
+  description: "Record tax-at-source deductions, issue deductee certificates, and\
+    \ pull per-section quarterly summaries."
+- name: E-Invoicing (IRN)
+  description: IRP registration for IRN + signed QR.
+- name: GST Returns
+  description: GSTR-1/GSTR-3B preparation and GSTN filing.
+- name: Messaging
+  description: WhatsApp/SMS/email templates and dispatch.
+- name: GST Invoicing
+  description: Create GST invoices (auto CGST/SGST/IGST breakup + numbering) and record
+    idempotent invoice payment.
+- name: Payment Links
+  description: Shareable payment links — fixed or payer-entered amount.
+- name: Insurance
+  description: Embedded protection policies and claims.
+- name: Cross-Border
+  description: Export invoices and inward FX remittances (FIRA).
+- name: Merchants
+  description: Merchant onboarding and current-merchant profile.
+- name: Payments
+  description: "Accept payments (create, capture) and inbound provider webhooks."
+- name: Orchestration
+  description: Smart provider routing — scorecards and cost basis.
+- name: Platform
+  description: Request-identity introspection and health probes.
+- name: Reconciliation
+  description: Provider settlements and auto-reconciliation.
+- name: TDS / TCS
+  description: "Tax-at-source deductions, certificates and summaries."
+- name: Escrow
+  description: "Conditional hold, release-to-seller and refund."
+- name: TDS / TCS Returns
+  description: "Prepare, export, and file quarterly TDS/TCS statutory returns (Form\
+    \ 24Q/26Q/27EQ)."
+- name: Input Tax Credit
+  description: Purchase invoices reconciled against GSTR-2B.
+- name: Analytics
+  description: "TPV, MRR/ARR, success rate and cash-flow forecasting."
+- name: Checkout
+  description: "Public hosted-checkout — pay a link by its code, no API key."
+- name: E-Invoicing (IRN)
+  description: Register a GST invoice at the IRP to obtain its IRN + signed QR; read
+    IRN details and cancel within the window.
+- name: Marketplace
+  description: Seller registration and split settlements (TCS/TDS).
+- name: Dunning
+  description: Failed-payment retry rules and attempt history.
+- name: ESG / Carbon
+  description: Per-transaction carbon footprint and offsets.
+- name: Input Tax Credit
+  description: "Record inward-supply purchase invoices, reconcile them against supplier-filed\
+    \ GSTR-2B, and report eligible ITC."
+- name: Ledger
+  description: Double-entry ledger accounts and balanced journal entries.
+- name: Virtual Accounts
+  description: Per-customer virtual accounts with auto-reconciled credits.
+- name: GST Returns
+  description: Prepare GSTR-1/GSTR-3B returns for a tax period from merchant invoices
+    and file them to GSTN (ARN).
+- name: Webhooks
+  description: Webhook endpoint registration and delivery history.
+- name: BNPL
+  description: Buy-Now-Pay-Later installment agreements.
+- name: GST Invoicing
+  description: Issue GST credit/debit notes against invoices and manage multi-GSTIN
+    registration.
+- name: GST AI
+  description: AI-assisted HSN/SAC classification and the Regulatory-Change Impact
+    Radar — both via the AiGateway §6.4 safety matrix with a deterministic fallback.
+paths:
+  /v1/tds/returns/{returnId}/file:
+    post:
+      tags:
+      - TDS / TCS Returns
+      operationId: file
+      parameters:
+      - name: returnId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TdsReturnSummary"
+  /v1/tds/returns/prepare:
+    post:
+      tags:
+      - TDS / TCS Returns
+      operationId: prepare
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TdsPrepareRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TdsReturnView"
+  /v1/tds/deductions:
+    get:
+      tags:
+      - TDS / TCS
+      operationId: list
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeductionView"
+    post:
+      tags:
+      - TDS / TCS
+      operationId: record
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordDeductionRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DeductionView"
+  /v1/tds/deductions/{deductionId}/certificate:
+    post:
+      tags:
+      - TDS / TCS
+      operationId: issueCertificate
+      parameters:
+      - name: deductionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DeductionView"
+  /v1/itc/reconcile:
+    post:
+      tags:
+      - Input Tax Credit
+      operationId: reconcile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReconcileRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ReconSummary"
+  /v1/itc/purchases:
+    get:
+      tags:
+      - Input Tax Credit
+      operationId: list_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PurchaseView"
+    post:
+      tags:
+      - Input Tax Credit
+      operationId: record_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordPurchaseRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PurchaseView"
+  /v1/gst/returns/{returnId}/file:
+    post:
+      tags:
+      - GST Returns
+      operationId: file_1
+      parameters:
+      - name: returnId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/FilingReturnSummary"
+  /v1/gst/returns/prepare:
+    post:
+      tags:
+      - GST Returns
+      operationId: prepare_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FilingPrepareRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/FilingReturnView"
+  /v1/gst/reg-changes:
+    get:
+      tags:
+      - GST AI
+      operationId: listRegChanges
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RegChangeView"
+    post:
+      tags:
+      - GST AI
+      operationId: createRegChange
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRegChangeRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RegChangeView"
+  /v1/gst/notes/{noteId}/cancel:
+    post:
+      tags:
+      - GST Invoicing
+      operationId: cancelNote
+      parameters:
+      - name: noteId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/NoteView"
+  /v1/gst/notes/{noteId}/apply:
+    post:
+      tags:
+      - GST Invoicing
+      operationId: applyNote
+      parameters:
+      - name: noteId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/NoteView"
+  /v1/gst/invoices:
+    get:
+      tags:
+      - GST Invoicing
+      operationId: list_2
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GstInvoiceView"
+    post:
+      tags:
+      - GST Invoicing
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvoiceRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/GstInvoiceView"
+  /v1/gst/invoices/{invoiceId}/irn:
+    get:
+      tags:
+      - E-Invoicing (IRN)
+      operationId: get
+      parameters:
+      - name: invoiceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IrnView"
+    post:
+      tags:
+      - E-Invoicing (IRN)
+      operationId: generate
+      parameters:
+      - name: invoiceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IrnView"
+  /v1/gst/invoices/{invoiceId}/irn/cancel:
+    post:
+      tags:
+      - E-Invoicing (IRN)
+      operationId: cancel
+      parameters:
+      - name: invoiceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IrnView"
+  /v1/gst/invoices/{invoiceId}/debit-note:
+    post:
+      tags:
+      - GST Invoicing
+      operationId: debitNote
+      parameters:
+      - name: invoiceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NoteRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/NoteView"
+  /v1/gst/invoices/{invoiceId}/credit-note:
+    post:
+      tags:
+      - GST Invoicing
+      operationId: creditNote
+      parameters:
+      - name: invoiceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NoteRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/NoteView"
+  /v1/gst/invoices/{id}/pay:
+    post:
+      tags:
+      - GST Invoicing
+      operationId: pay
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/gst/gstins:
+    get:
+      tags:
+      - GST Invoicing
+      operationId: listGstins
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GstinView"
+    post:
+      tags:
+      - GST Invoicing
+      operationId: registerGstin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterGstinRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/GstinView"
+  /v1/gst/classify:
+    post:
+      tags:
+      - GST AI
+      operationId: classify
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GstClassifyRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ClassificationResult"
+  /v1/tds/summary:
+    get:
+      tags:
+      - TDS / TCS
+      operationId: summary
+      parameters:
+      - name: quarter
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SummaryView"
+  /v1/tds/returns:
+    get:
+      tags:
+      - TDS / TCS Returns
+      operationId: list_3
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TdsReturnSummary"
+  /v1/tds/returns/{returnId}:
+    get:
+      tags:
+      - TDS / TCS Returns
+      operationId: get_1
+      parameters:
+      - name: returnId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TdsReturnView"
+  /v1/tds/returns/{returnId}/export:
+    get:
+      tags:
+      - TDS / TCS Returns
+      operationId: export
+      parameters:
+      - name: returnId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: byte
+  /v1/tds/deductions/{deductionId}:
+    get:
+      tags:
+      - TDS / TCS
+      operationId: get_2
+      parameters:
+      - name: deductionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DeductionView"
+  /v1/itc/purchases/{id}:
+    get:
+      tags:
+      - Input Tax Credit
+      operationId: get_3
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PurchaseView"
+  /v1/itc/eligible-summary:
+    get:
+      tags:
+      - Input Tax Credit
+      operationId: eligibleSummary
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EligibleItcSummary"
+  /v1/gst/returns:
+    get:
+      tags:
+      - GST Returns
+      operationId: list_4
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FilingReturnSummary"
+  /v1/gst/returns/{returnId}:
+    get:
+      tags:
+      - GST Returns
+      operationId: get_4
+      parameters:
+      - name: returnId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/FilingReturnView"
+  /v1/gst/reg-changes/{id}/impact:
+    get:
+      tags:
+      - GST AI
+      operationId: impact
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RegChangeImpactReport"
+  /v1/gst/notes:
+    get:
+      tags:
+      - GST Invoicing
+      operationId: listNotes
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NoteView"
+  /v1/gst/invoices/{id}:
+    get:
+      tags:
+      - GST Invoicing
+      operationId: get_5
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/GstInvoiceView"
+components:
+  schemas:
+    TdsReturnSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        form:
+          type: string
+        fy:
+          type: string
+        quarter:
+          type: string
+        status:
+          type: string
+        deducteeCount:
+          type: integer
+          format: int32
+        deductionCount:
+          type: integer
+          format: int32
+        totalGrossMinor:
+          type: integer
+          format: int64
+        totalTaxMinor:
+          type: integer
+          format: int64
+        bsrCode:
+          type: string
+        challanNo:
+          type: string
+        challanDate:
+          type: string
+          format: date
+        ackToken:
+          type: string
+        preparedAt:
+          type: string
+          format: date-time
+        filedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+    TdsPrepareRequest:
+      type: object
+      properties:
+        form:
+          type: string
+          enum:
+          - FORM_24Q
+          - FORM_26Q
+          - FORM_27EQ
+        quarter:
+          type: string
+          minLength: 1
+      required:
+      - quarter
+    TdsReturnLineView:
+      type: object
+      properties:
+        deducteeName:
+          type: string
+        deducteePan:
+          type: string
+        section:
+          type: string
+        grossMinor:
+          type: integer
+          format: int64
+        rateBps:
+          type: integer
+          format: int32
+        taxMinor:
+          type: integer
+          format: int64
+        deductedOn:
+          type: string
+          format: date
+        transactionRef:
+          type: string
+    TdsReturnView:
+      type: object
+      properties:
+        ret:
+          $ref: "#/components/schemas/TdsReturnSummary"
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/TdsReturnLineView"
+    RecordDeductionRequest:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum:
+          - TDS
+          - TCS
+        section:
+          type: string
+          minLength: 1
+        deducteeName:
+          type: string
+          minLength: 1
+        deducteePan:
+          type: string
+        grossMinor:
+          type: integer
+          format: int64
+        rateBps:
+          type: integer
+          format: int32
+        transactionRef:
+          type: string
+        deductedOn:
+          type: string
+          format: date
+      required:
+      - deductedOn
+      - deducteeName
+      - grossMinor
+      - kind
+      - rateBps
+      - section
+    DeductionView:
+      type: object
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+        section:
+          type: string
+        deducteeName:
+          type: string
+        deducteePan:
+          type: string
+        grossMinor:
+          type: integer
+          format: int64
+        rateBps:
+          type: integer
+          format: int32
+        taxMinor:
+          type: integer
+          format: int64
+        transactionRef:
+          type: string
+        deductedOn:
+          type: string
+          format: date
+        quarter:
+          type: string
+        certificateNo:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    Gstr2bLine:
+      type: object
+      properties:
+        supplierGstin:
+          type: string
+        invoiceNumber:
+          type: string
+        totalGstMinor:
+          type: integer
+          format: int64
+    ReconcileRequest:
+      type: object
+      properties:
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/Gstr2bLine"
+      required:
+      - lines
+    ReconSummary:
+      type: object
+      properties:
+        matched:
+          type: integer
+          format: int32
+        mismatched:
+          type: integer
+          format: int32
+        missingIn2b:
+          type: integer
+          format: int32
+    RecordPurchaseRequest:
+      type: object
+      properties:
+        supplierGstin:
+          type: string
+          minLength: 1
+        supplierName:
+          type: string
+          minLength: 1
+        invoiceNumber:
+          type: string
+          minLength: 1
+        invoiceDate:
+          type: string
+          format: date
+        taxableMinor:
+          type: integer
+          format: int64
+        cgstMinor:
+          type: integer
+          format: int64
+        sgstMinor:
+          type: integer
+          format: int64
+        igstMinor:
+          type: integer
+          format: int64
+        itcEligible:
+          type: boolean
+      required:
+      - invoiceDate
+      - invoiceNumber
+      - supplierGstin
+      - supplierName
+    PurchaseView:
+      type: object
+      properties:
+        id:
+          type: string
+        supplierGstin:
+          type: string
+        supplierName:
+          type: string
+        invoiceNumber:
+          type: string
+        invoiceDate:
+          type: string
+          format: date
+        taxableMinor:
+          type: integer
+          format: int64
+        cgstMinor:
+          type: integer
+          format: int64
+        sgstMinor:
+          type: integer
+          format: int64
+        igstMinor:
+          type: integer
+          format: int64
+        totalGstMinor:
+          type: integer
+          format: int64
+        itcEligible:
+          type: boolean
+        reconStatus:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        reconciledAt:
+          type: string
+          format: date-time
+    FilingReturnSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        period:
+          type: string
+        status:
+          type: string
+        invoiceCount:
+          type: integer
+          format: int32
+        totalTaxableMinor:
+          type: integer
+          format: int64
+        totalCgstMinor:
+          type: integer
+          format: int64
+        totalSgstMinor:
+          type: integer
+          format: int64
+        totalIgstMinor:
+          type: integer
+          format: int64
+        totalTaxMinor:
+          type: integer
+          format: int64
+        arn:
+          type: string
+        preparedAt:
+          type: string
+          format: date-time
+        filedAt:
+          type: string
+          format: date-time
+    FilingPrepareRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+          - GSTR1
+          - GSTR3B
+        period:
+          type: string
+          minLength: 1
+      required:
+      - period
+    FilingReturnLineView:
+      type: object
+      properties:
+        invoiceNumber:
+          type: string
+        buyerGstin:
+          type: string
+        placeOfSupply:
+          type: string
+        supplyType:
+          type: string
+        taxableMinor:
+          type: integer
+          format: int64
+        cgstMinor:
+          type: integer
+          format: int64
+        sgstMinor:
+          type: integer
+          format: int64
+        igstMinor:
+          type: integer
+          format: int64
+    FilingReturnView:
+      type: object
+      properties:
+        ret:
+          $ref: "#/components/schemas/FilingReturnSummary"
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/FilingReturnLineView"
+    CreateRegChangeRequest:
+      type: object
+      properties:
+        hsnSac:
+          type: string
+          minLength: 1
+        changeType:
+          type: string
+          enum:
+          - RATE_CHANGE
+        oldRatePct:
+          type: integer
+          format: int32
+        newRatePct:
+          type: integer
+          format: int32
+        effectiveDate:
+          type: string
+          format: date
+        title:
+          type: string
+          minLength: 1
+        source:
+          type: string
+      required:
+      - effectiveDate
+      - hsnSac
+      - newRatePct
+      - title
+    RegChangeView:
+      type: object
+      properties:
+        id:
+          type: string
+        hsnSac:
+          type: string
+        changeType:
+          type: string
+        oldRatePct:
+          type: integer
+          format: int32
+        newRatePct:
+          type: integer
+          format: int32
+        effectiveDate:
+          type: string
+          format: date
+        title:
+          type: string
+        source:
+          type: string
+        announcedAt:
+          type: string
+          format: date-time
+    NoteView:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        originalInvoiceId:
+          type: string
+        reason:
+          type: string
+        taxableMinor:
+          type: integer
+          format: int64
+        totalMinor:
+          type: integer
+          format: int64
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+        issuedAt:
+          type: string
+          format: date-time
+    CreateInvoiceRequest:
+      type: object
+      properties:
+        supplierGstin:
+          type: string
+          minLength: 1
+        buyerGstin:
+          type: string
+        placeOfSupply:
+          type: string
+          minLength: 1
+        currency:
+          type: string
+          minLength: 1
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/GstInvoiceLineDto"
+          minItems: 1
+      required:
+      - currency
+      - lines
+      - placeOfSupply
+      - supplierGstin
+    GstInvoiceLineDto:
+      type: object
+      properties:
+        description:
+          type: string
+          minLength: 1
+        hsnSac:
+          type: string
+          minLength: 1
+        quantity:
+          type: integer
+          format: int64
+        unitPriceMinor:
+          type: integer
+          format: int64
+        gstRate:
+          type: integer
+          format: int32
+          minimum: 0
+      required:
+      - description
+      - hsnSac
+    GstInvoiceView:
+      type: object
+      properties:
+        id:
+          type: string
+        invoiceNumber:
+          type: string
+        supplyType:
+          type: string
+        status:
+          type: string
+        taxableMinor:
+          type: integer
+          format: int64
+        cgstMinor:
+          type: integer
+          format: int64
+        sgstMinor:
+          type: integer
+          format: int64
+        igstMinor:
+          type: integer
+          format: int64
+        totalGstMinor:
+          type: integer
+          format: int64
+        totalMinor:
+          type: integer
+          format: int64
+        ledgerEntryId:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/LineView"
+    LineView:
+      type: object
+      properties:
+        description:
+          type: string
+        hsnSac:
+          type: string
+        taxableMinor:
+          type: integer
+          format: int64
+        cgstMinor:
+          type: integer
+          format: int64
+        sgstMinor:
+          type: integer
+          format: int64
+        igstMinor:
+          type: integer
+          format: int64
+        lineTotalMinor:
+          type: integer
+          format: int64
+    IrnView:
+      type: object
+      properties:
+        invoiceId:
+          type: string
+        invoiceNumber:
+          type: string
+        irnStatus:
+          type: string
+        irn:
+          type: string
+        ackNo:
+          type: string
+        ackDate:
+          type: string
+          format: date-time
+        signedQrCode:
+          type: string
+        generatedAt:
+          type: string
+          format: date-time
+        cancelledAt:
+          type: string
+          format: date-time
+        cancelReason:
+          type: string
+    CancelRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          minLength: 1
+      required:
+      - reason
+    NoteRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          minLength: 1
+        taxableMinor:
+          type: integer
+          format: int64
+        cgstMinor:
+          type: integer
+          format: int64
+        sgstMinor:
+          type: integer
+          format: int64
+        igstMinor:
+          type: integer
+          format: int64
+      required:
+      - reason
+    RegisterGstinRequest:
+      type: object
+      properties:
+        gstin:
+          type: string
+          minLength: 1
+        legalName:
+          type: string
+          minLength: 1
+        stateCode:
+          type: string
+          minLength: 1
+        isDefault:
+          type: boolean
+      required:
+      - gstin
+      - legalName
+      - stateCode
+    GstinView:
+      type: object
+      properties:
+        id:
+          type: string
+        gstin:
+          type: string
+        legalName:
+          type: string
+        stateCode:
+          type: string
+        isDefault:
+          type: boolean
+    GstClassifyRequest:
+      type: object
+      properties:
+        description:
+          type: string
+          minLength: 1
+      required:
+      - description
+    ClassificationResult:
+      type: object
+      properties:
+        decisionId:
+          type: string
+        model:
+          type: string
+        source:
+          type: string
+        fellBack:
+          type: boolean
+        requiresReview:
+          type: boolean
+        confidence:
+          type: number
+          format: double
+        explanation:
+          type: string
+        suggestions:
+          type: array
+          items:
+            $ref: "#/components/schemas/HsnSuggestion"
+    HsnSuggestion:
+      type: object
+      properties:
+        hsnSac:
+          type: string
+        kind:
+          type: string
+        gstRate:
+          type: integer
+          format: int32
+        confidence:
+          type: number
+          format: double
+        label:
+          type: string
+    SummaryView:
+      type: object
+      properties:
+        quarter:
+          type: string
+        count:
+          type: integer
+          format: int32
+        totalGrossMinor:
+          type: integer
+          format: int64
+        totalTaxMinor:
+          type: integer
+          format: int64
+        taxBySection:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+    EligibleItcSummary:
+      type: object
+      properties:
+        eligibleInvoiceCount:
+          type: integer
+          format: int32
+        eligibleItcMinor:
+          type: integer
+          format: int64
+    InvoiceImpact:
+      type: object
+      properties:
+        invoiceId:
+          type: string
+        invoiceNumber:
+          type: string
+        taxableMinor:
+          type: integer
+          format: int64
+        currentGstMinor:
+          type: integer
+          format: int64
+        forecastGstMinor:
+          type: integer
+          format: int64
+        deltaGstMinor:
+          type: integer
+          format: int64
+    RegChangeImpactReport:
+      type: object
+      properties:
+        changeId:
+          type: string
+        hsnSac:
+          type: string
+        oldRatePct:
+          type: integer
+          format: int32
+        newRatePct:
+          type: integer
+          format: int32
+        effectiveDate:
+          type: string
+          format: date
+        forecast:
+          type: boolean
+        confidence:
+          type: number
+          format: double
+        disclaimer:
+          type: string
+        affectedInvoiceCount:
+          type: integer
+          format: int32
+        affectedLineCount:
+          type: integer
+          format: int32
+        totalTaxableMinor:
+          type: integer
+          format: int64
+        currentGstMinor:
+          type: integer
+          format: int64
+        forecastGstMinor:
+          type: integer
+          format: int64
+        deltaGstMinor:
+          type: integer
+          format: int64
+        decisionId:
+          type: string
+        invoices:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvoiceImpact"
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      description: Programmatic API key (`qp_live_…` / `qp_test_…`) presented as the
+        `X-Api-Key` header.
+      name: X-Api-Key
+      in: header

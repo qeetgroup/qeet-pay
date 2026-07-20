@@ -1,0 +1,1341 @@
+openapi: 3.1.0
+info:
+  title: Qeet Pay API
+  description: "Qeet Pay — India-first payments, billing and GST infrastructure (UPI\
+    \ / Cards / NACH). Programmatic `/v1` calls authenticate with a `qp_live_` / `qp_test_`\
+    \ API key via the `X-Api-Key` header; money is always in integer minor units (paise)."
+  contact:
+    name: Qeet Group
+    url: https://qeet.in
+  license:
+    name: Proprietary
+    url: https://qeet.in
+  version: v1
+servers:
+- url: http://localhost:4201
+  description: Local development
+- url: https://api.pay.qeet.in
+  description: Production
+security:
+- ApiKeyAuth: []
+tags:
+- name: Billing
+  description: "Plans, subscriptions, invoices and usage metering."
+- name: Payouts
+  description: Single and bulk payouts under maker-checker approval.
+- name: Lending
+  description: Working-capital advances repaid from settlements.
+- name: Mandates
+  description: Recurring mandates and idempotent mandate debits.
+- name: Revenue Recognition
+  description: IndAS 115 deferred-revenue schedules.
+- name: KYB
+  description: Merchant Know-Your-Business verification.
+- name: GST Invoicing
+  description: GST invoices and credit/debit notes.
+- name: Cards
+  description: Virtual expense/wallet cards.
+- name: E-Invoicing (IRN)
+  description: IRP registration for IRN + signed QR.
+- name: GST Returns
+  description: GSTR-1/GSTR-3B preparation and GSTN filing.
+- name: Messaging
+  description: WhatsApp/SMS/email templates and dispatch.
+- name: Payment Links
+  description: Shareable payment links — fixed or payer-entered amount.
+- name: Ledger
+  description: "Double-entry ledger — list accounts, post a balanced journal entry\
+    \ (idempotent), and read account balances."
+- name: Payouts
+  description: "Bulk payout batches from a JSON array or CSV upload, disbursed under\
+    \ maker-checker approval."
+- name: Insurance
+  description: Embedded protection policies and claims.
+- name: Cross-Border
+  description: Export invoices and inward FX remittances (FIRA).
+- name: Merchants
+  description: Merchant onboarding and current-merchant profile.
+- name: Treasury
+  description: "Programmable money — auto-sweep rules that move idle cash between\
+    \ ledger accounts, plus an advisory idle-cash recommendation."
+- name: Payments
+  description: "Accept payments (create, capture) and inbound provider webhooks."
+- name: Orchestration
+  description: Smart provider routing — scorecards and cost basis.
+- name: Platform
+  description: Request-identity introspection and health probes.
+- name: Reconciliation
+  description: Provider settlements and auto-reconciliation.
+- name: TDS / TCS
+  description: "Tax-at-source deductions, certificates and summaries."
+- name: Escrow
+  description: "Conditional hold, release-to-seller and refund."
+- name: Reconciliation
+  description: Ingest provider settlement reports — post the money movement and auto-reconcile
+    against captured payments.
+- name: Input Tax Credit
+  description: Purchase invoices reconciled against GSTR-2B.
+- name: Analytics
+  description: "TPV, MRR/ARR, success rate and cash-flow forecasting."
+- name: Checkout
+  description: "Public hosted-checkout — pay a link by its code, no API key."
+- name: Marketplace
+  description: Seller registration and split settlements (TCS/TDS).
+- name: Dunning
+  description: Failed-payment retry rules and attempt history.
+- name: ESG / Carbon
+  description: Per-transaction carbon footprint and offsets.
+- name: Ledger
+  description: Double-entry ledger accounts and balanced journal entries.
+- name: Virtual Accounts
+  description: Per-customer virtual accounts with auto-reconciled credits.
+- name: Webhooks
+  description: Webhook endpoint registration and delivery history.
+- name: BNPL
+  description: Buy-Now-Pay-Later installment agreements.
+- name: Payouts
+  description: "Create, approve (maker-checker, idempotent) and reject single payouts;\
+    \ approval disburses and posts to the ledger."
+paths:
+  /v1/treasury/sweeps/run:
+    post:
+      tags:
+      - Treasury
+      operationId: runSweeps
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SweepRunView"
+  /v1/treasury/rules:
+    get:
+      tags:
+      - Treasury
+      operationId: listRules
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TreasuryRuleView"
+    post:
+      tags:
+      - Treasury
+      operationId: createRule
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TreasuryCreateRuleRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TreasuryRuleView"
+  /v1/treasury/rules/{ruleId}/resume:
+    post:
+      tags:
+      - Treasury
+      operationId: resumeRule
+      parameters:
+      - name: ruleId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TreasuryRuleView"
+  /v1/treasury/rules/{ruleId}/pause:
+    post:
+      tags:
+      - Treasury
+      operationId: pauseRule
+      parameters:
+      - name: ruleId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TreasuryRuleView"
+  /v1/settlements:
+    get:
+      tags:
+      - Reconciliation
+      operationId: list
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SettlementView"
+    post:
+      tags:
+      - Reconciliation
+      operationId: ingest
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IngestSettlementRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/payroll/batches:
+    get:
+      tags:
+      - payroll-controller
+      operationId: list_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PayrollBatchSummaryView"
+    post:
+      tags:
+      - payroll-controller
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePayrollBatchRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PayrollBatchView"
+  /v1/payroll/batches/{id}/reject:
+    post:
+      tags:
+      - payroll-controller
+      operationId: reject
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PayrollBatchView"
+  /v1/payroll/batches/{id}/approve:
+    post:
+      tags:
+      - payroll-controller
+      operationId: approve
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/payouts:
+    post:
+      tags:
+      - Payouts
+      operationId: create_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePayoutRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PayoutView"
+  /v1/payouts/{id}/reject:
+    post:
+      tags:
+      - Payouts
+      operationId: reject_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PayoutView"
+  /v1/payouts/{id}/approve:
+    post:
+      tags:
+      - Payouts
+      operationId: approve_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/payout-batches:
+    get:
+      tags:
+      - Payouts
+      operationId: list_2
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PayoutBatchSummaryView"
+    post:
+      tags:
+      - Payouts
+      operationId: create_2
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBatchRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PayoutBatchView"
+  /v1/payout-batches/{id}/reject:
+    post:
+      tags:
+      - Payouts
+      operationId: reject_2
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PayoutBatchView"
+  /v1/payout-batches/{id}/approve:
+    post:
+      tags:
+      - Payouts
+      operationId: approve_2
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/payout-batches/csv:
+    post:
+      tags:
+      - Payouts
+      operationId: createFromCsv
+      parameters:
+      - name: currency
+        in: query
+        required: false
+        schema:
+          type: string
+          default: INR
+      - name: description
+        in: query
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          text/csv:
+            schema:
+              type: string
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PayoutBatchView"
+  /v1/ledger/entries:
+    post:
+      tags:
+      - Ledger
+      operationId: postEntry
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostEntryRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/treasury/sweeps:
+    get:
+      tags:
+      - Treasury
+      operationId: listSweeps
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SweepExecutionView"
+  /v1/treasury/rules/{ruleId}:
+    get:
+      tags:
+      - Treasury
+      operationId: getRule
+      parameters:
+      - name: ruleId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TreasuryRuleView"
+  /v1/treasury/recommendations:
+    get:
+      tags:
+      - Treasury
+      operationId: recommendations
+      parameters:
+      - name: horizonDays
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 30
+      - name: windowDays
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 30
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IdleCashRecommendation"
+  /v1/settlements/{id}:
+    get:
+      tags:
+      - Reconciliation
+      operationId: get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SettlementView"
+  /v1/payroll/batches/{id}:
+    get:
+      tags:
+      - payroll-controller
+      operationId: get_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PayrollBatchView"
+  /v1/payroll/batches/{id}/lines:
+    get:
+      tags:
+      - payroll-controller
+      operationId: lines
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PayrollLineView"
+  /v1/payroll/batches/{id}/lines/{lineId}/slip:
+    get:
+      tags:
+      - payroll-controller
+      operationId: slip
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: lineId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SalarySlip"
+  /v1/payouts/{id}:
+    get:
+      tags:
+      - Payouts
+      operationId: get_2
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PayoutView"
+  /v1/payout-batches/{id}:
+    get:
+      tags:
+      - Payouts
+      operationId: get_3
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PayoutBatchView"
+  /v1/ledger/accounts:
+    get:
+      tags:
+      - Ledger
+      operationId: accounts
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LedgerAccountView"
+  /v1/ledger/accounts/{id}/balance:
+    get:
+      tags:
+      - Ledger
+      operationId: balance
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/BalanceView"
+components:
+  schemas:
+    SweepExecutionView:
+      type: object
+      properties:
+        id:
+          type: string
+        ruleId:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        sourceBalanceBeforeMinor:
+          type: integer
+          format: int64
+        ledgerEntryId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    SweepRunView:
+      type: object
+      properties:
+        evaluated:
+          type: integer
+          format: int32
+        fired:
+          type: integer
+          format: int32
+        totalSweptMinor:
+          type: integer
+          format: int64
+        executions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SweepExecutionView"
+    TreasuryCreateRuleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        sourceAccountCode:
+          type: string
+          minLength: 1
+        targetAccountCode:
+          type: string
+          minLength: 1
+        trigger:
+          type: string
+          enum:
+          - THRESHOLD
+          - SCHEDULE
+        thresholdMinor:
+          type: integer
+          format: int64
+        schedule:
+          type: string
+        keepMinor:
+          type: integer
+          format: int64
+      required:
+      - name
+      - sourceAccountCode
+      - targetAccountCode
+      - trigger
+    TreasuryRuleView:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        sourceAccountCode:
+          type: string
+        targetAccountCode:
+          type: string
+        trigger:
+          type: string
+        thresholdMinor:
+          type: integer
+          format: int64
+        schedule:
+          type: string
+        keepMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    IngestSettlementRequest:
+      type: object
+      properties:
+        provider:
+          type: string
+          minLength: 1
+        providerSettlementId:
+          type: string
+          minLength: 1
+        currency:
+          type: string
+          minLength: 1
+        settledAt:
+          type: string
+          format: date-time
+        reportedNetMinor:
+          type: integer
+          format: int64
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SettlementLineDto"
+          minItems: 1
+      required:
+      - currency
+      - items
+      - provider
+      - providerSettlementId
+    SettlementLineDto:
+      type: object
+      properties:
+        paymentId:
+          type: string
+          format: uuid
+        providerPaymentId:
+          type: string
+        grossMinor:
+          type: integer
+          format: int64
+        feeMinor:
+          type: integer
+          format: int64
+        taxMinor:
+          type: integer
+          format: int64
+    CreatePayrollBatchRequest:
+      type: object
+      properties:
+        currency:
+          type: string
+          minLength: 1
+        period:
+          type: string
+        description:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayrollLineDto"
+          minItems: 1
+      required:
+      - currency
+      - lines
+    PayrollLineDto:
+      type: object
+      properties:
+        employeeRef:
+          type: string
+          minLength: 1
+        employeeName:
+          type: string
+        rail:
+          type: string
+          enum:
+          - UPI
+          - IMPS
+          - NEFT
+          - RTGS
+        destination:
+          type: string
+          minLength: 1
+        accountNumber:
+          type: string
+        ifsc:
+          type: string
+        grossMinor:
+          type: integer
+          format: int64
+        pfMinor:
+          type: integer
+          format: int64
+        esiMinor:
+          type: integer
+          format: int64
+        ptMinor:
+          type: integer
+          format: int64
+        tdsMinor:
+          type: integer
+          format: int64
+      required:
+      - destination
+      - employeeRef
+      - rail
+    PayrollBatchView:
+      type: object
+      properties:
+        id:
+          type: string
+        currency:
+          type: string
+        period:
+          type: string
+        status:
+          type: string
+        lineCount:
+          type: integer
+          format: int32
+        totalGrossMinor:
+          type: integer
+          format: int64
+        totalStatutoryMinor:
+          type: integer
+          format: int64
+        totalNetMinor:
+          type: integer
+          format: int64
+        paidCount:
+          type: integer
+          format: int32
+        failedCount:
+          type: integer
+          format: int32
+        payoutBatchId:
+          type: string
+        description:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayrollLineView"
+    PayrollLineView:
+      type: object
+      properties:
+        id:
+          type: string
+        employeeRef:
+          type: string
+        employeeName:
+          type: string
+        rail:
+          type: string
+        destination:
+          type: string
+        verified:
+          type: boolean
+        grossMinor:
+          type: integer
+          format: int64
+        pfMinor:
+          type: integer
+          format: int64
+        esiMinor:
+          type: integer
+          format: int64
+        ptMinor:
+          type: integer
+          format: int64
+        tdsMinor:
+          type: integer
+          format: int64
+        statutoryMinor:
+          type: integer
+          format: int64
+        netPayMinor:
+          type: integer
+          format: int64
+        status:
+          type: string
+        payoutId:
+          type: string
+        ledgerEntryId:
+          type: string
+        failureReason:
+          type: string
+    CreatePayoutRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        rail:
+          type: string
+          enum:
+          - UPI
+          - IMPS
+          - NEFT
+          - RTGS
+        destination:
+          type: string
+          minLength: 1
+        description:
+          type: string
+      required:
+      - currency
+      - destination
+      - rail
+    PayoutView:
+      type: object
+      properties:
+        id:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        rail:
+          type: string
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+    CreateBatchRequest:
+      type: object
+      properties:
+        currency:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        payouts:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayoutLineDto"
+          minItems: 1
+      required:
+      - currency
+      - payouts
+    PayoutLineDto:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        rail:
+          type: string
+          enum:
+          - UPI
+          - IMPS
+          - NEFT
+          - RTGS
+        destination:
+          type: string
+          minLength: 1
+        description:
+          type: string
+      required:
+      - destination
+      - rail
+    PayoutBatchView:
+      type: object
+      properties:
+        id:
+          type: string
+        currency:
+          type: string
+        status:
+          type: string
+        totalCount:
+          type: integer
+          format: int32
+        totalAmountMinor:
+          type: integer
+          format: int64
+        paidCount:
+          type: integer
+          format: int32
+        failedCount:
+          type: integer
+          format: int32
+        description:
+          type: string
+        payouts:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayoutLineView"
+    PayoutLineView:
+      type: object
+      properties:
+        id:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        rail:
+          type: string
+        destination:
+          type: string
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+    LedgerLineDto:
+      type: object
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        direction:
+          type: string
+          enum:
+          - DEBIT
+          - CREDIT
+        amountMinor:
+          type: integer
+          format: int64
+      required:
+      - accountId
+      - direction
+    PostEntryRequest:
+      type: object
+      properties:
+        description:
+          type: string
+          minLength: 1
+        currency:
+          type: string
+          minLength: 1
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/LedgerLineDto"
+          minItems: 1
+      required:
+      - currency
+      - description
+      - lines
+    IdleCashRecommendation:
+      type: object
+      properties:
+        settlementBalanceMinor:
+          type: integer
+          format: int64
+        suggestedBufferMinor:
+          type: integer
+          format: int64
+        idleCashMinor:
+          type: integer
+          format: int64
+        avgDailyNetMinor:
+          type: integer
+          format: int64
+        projectedEndBalanceMinor:
+          type: integer
+          format: int64
+        horizonDays:
+          type: integer
+          format: int32
+        recommendation:
+          type: string
+    DiscrepancyView:
+      type: object
+      properties:
+        type:
+          type: string
+        paymentId:
+          type: string
+        providerPaymentId:
+          type: string
+        expectedMinor:
+          type: integer
+          format: int64
+        reportedMinor:
+          type: integer
+          format: int64
+        detail:
+          type: string
+    ReconciliationView:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        matchedCount:
+          type: integer
+          format: int32
+        discrepancyCount:
+          type: integer
+          format: int32
+        discrepancies:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiscrepancyView"
+    SettlementView:
+      type: object
+      properties:
+        id:
+          type: string
+        provider:
+          type: string
+        providerSettlementId:
+          type: string
+        currency:
+          type: string
+        grossAmountMinor:
+          type: integer
+          format: int64
+        feeAmountMinor:
+          type: integer
+          format: int64
+        taxAmountMinor:
+          type: integer
+          format: int64
+        netAmountMinor:
+          type: integer
+          format: int64
+        itemCount:
+          type: integer
+          format: int32
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+        reconciliation:
+          $ref: "#/components/schemas/ReconciliationView"
+    PayrollBatchSummaryView:
+      type: object
+      properties:
+        id:
+          type: string
+        currency:
+          type: string
+        period:
+          type: string
+        status:
+          type: string
+        lineCount:
+          type: integer
+          format: int32
+        totalGrossMinor:
+          type: integer
+          format: int64
+        totalNetMinor:
+          type: integer
+          format: int64
+        paidCount:
+          type: integer
+          format: int32
+        failedCount:
+          type: integer
+          format: int32
+        description:
+          type: string
+    SalarySlip:
+      type: object
+      properties:
+        lineId:
+          type: string
+        batchId:
+          type: string
+        employeeRef:
+          type: string
+        employeeName:
+          type: string
+        period:
+          type: string
+        currency:
+          type: string
+        grossMinor:
+          type: integer
+          format: int64
+        pfMinor:
+          type: integer
+          format: int64
+        esiMinor:
+          type: integer
+          format: int64
+        ptMinor:
+          type: integer
+          format: int64
+        tdsMinor:
+          type: integer
+          format: int64
+        statutoryMinor:
+          type: integer
+          format: int64
+        netPayMinor:
+          type: integer
+          format: int64
+        status:
+          type: string
+        payoutRef:
+          type: string
+        ledgerEntryId:
+          type: string
+    PayoutBatchSummaryView:
+      type: object
+      properties:
+        id:
+          type: string
+        currency:
+          type: string
+        status:
+          type: string
+        totalCount:
+          type: integer
+          format: int32
+        totalAmountMinor:
+          type: integer
+          format: int64
+        paidCount:
+          type: integer
+          format: int32
+        failedCount:
+          type: integer
+          format: int32
+        description:
+          type: string
+    LedgerAccountView:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        type:
+          type: string
+        currency:
+          type: string
+    BalanceView:
+      type: object
+      properties:
+        accountId:
+          type: string
+        balanceMinor:
+          type: integer
+          format: int64
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      description: Programmatic API key (`qp_live_…` / `qp_test_…`) presented as the
+        `X-Api-Key` header.
+      name: X-Api-Key
+      in: header

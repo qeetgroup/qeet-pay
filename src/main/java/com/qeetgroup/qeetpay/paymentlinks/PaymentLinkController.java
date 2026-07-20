@@ -2,6 +2,7 @@ package com.qeetgroup.qeetpay.paymentlinks;
 
 import com.qeetgroup.qeetpay.payments.PaymentMethod;
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -82,6 +83,7 @@ public class PaymentLinkController {
             String reference,
             Instant expiresAt) {}
 
+    @Schema(name = "PaymentLinkPayRequest")
     public record PayRequest(
             @NotNull PaymentMethod method,
             @Positive Long amountMinor,           // required only for open-amount links

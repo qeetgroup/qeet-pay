@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.kyb;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -84,6 +85,7 @@ public class CustomerKycController {
 
     public record AadhaarVerifyRequest(@NotBlank String txnId, @NotBlank String otp) {}
 
+    @Schema(name = "KycPanRequest")
     public record PanRequest(@NotBlank String pan) {}
 
     public record KycView(

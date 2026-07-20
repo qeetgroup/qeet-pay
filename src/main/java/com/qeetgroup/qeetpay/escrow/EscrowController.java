@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.escrow;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -78,6 +79,7 @@ public class EscrowController {
 
     public record MovementRequest(@NotNull @Positive Long amountMinor, String note) {}
 
+    @Schema(name = "EscrowEventView")
     public record EventView(String type, long amountMinor, String ledgerEntryId, String note, Instant createdAt) {
         static EventView of(EscrowEvent e) {
             return new EventView(
@@ -86,6 +88,7 @@ public class EscrowController {
         }
     }
 
+    @Schema(name = "EscrowAgreementSummary")
     public record AgreementSummary(
             String id, String buyerRef, String sellerRef, String currency, long amountMinor,
             long releasedMinor, long refundedMinor, long remainingMinor, String status,
@@ -98,6 +101,7 @@ public class EscrowController {
         }
     }
 
+    @Schema(name = "EscrowAgreementView")
     public record AgreementView(AgreementSummary escrow, List<EventView> events) {
         static AgreementView of(EscrowService.AgreementWithEvents a) {
             return new AgreementView(

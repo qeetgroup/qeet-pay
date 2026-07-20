@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.bnpl;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -80,6 +81,7 @@ public class BnplController {
         }
     }
 
+    @Schema(name = "BnplAgreementSummary")
     public record AgreementSummary(
             String id, String customerRef, String orderRef, String currency, long orderAmountMinor,
             int interestBps, long totalPayableMinor, int installmentsCount, int paidInstallments,
@@ -92,6 +94,7 @@ public class BnplController {
         }
     }
 
+    @Schema(name = "BnplAgreementView")
     public record AgreementView(AgreementSummary agreement, List<InstallmentView> installments) {
         static AgreementView of(BnplService.AgreementWithInstallments a) {
             return new AgreementView(

@@ -1,0 +1,39 @@
+├── .env.example
+├── .gitignore
+├── bun.lock
+├── next-env.d.ts
+├── next.config.ts
+├── package.json
+├── pnpm-workspace.yaml
+├── postcss.config.mjs
+├── project.tree
+├── README.md
+├── src
+│  ├── app
+│  │  ├── globals.css
+│  │  ├── layout.tsx
+│  │  ├── page.tsx
+│  │  └── pay
+│  │    └── [code]
+│  │      ├── checkout-form.tsx
+│  │      └── page.tsx
+│  ├── components
+│  │  ├── checkout-card.tsx
+│  │  ├── checkout-shell.tsx
+│  │  ├── form-alert.tsx
+│  │  ├── pay-summary.tsx
+│  │  └── payment-method-select.tsx
+│  ├── i18n
+│  │  ├── index.ts
+│  │  ├── locales
+│  │  │  └── en
+│  │  │    ├── checkout.json
+│  │  │    └── common.json
+│  │  └── provider.tsx
+│  └── lib
+│    ├── api.ts
+│    ├── branding.ts
+│    └── money.ts
+├── tsconfig.json
+├── tsconfig.tsbuildinfo
+└── vercel.json

@@ -82,7 +82,38 @@ public class WebhookDeliveryService {
     @Transactional
     public WebhookEndpoint register(UUID merchantId, String url, String events, String signingSecret) {
         merchantScope.apply(merchantId);
-        return endpoints.save(new WebhookEndpoint(merchantId, url, events, signingSecret));
+        return endpoints.save(new WebhookEndpoint(merchantId, url, normalizeEvents(events), signingSecret));
+    }
+
+    /**
+     * Normalizes the subscribed-events input into a valid JSON array string for the {@code jsonb}
+     * column. Accepts an already-JSON array ({@code ["a","b"]}), a comma-separated list
+     * ({@code a,b}), a single event, or null/blank (→ {@code ["*"]} = all). Without this a plain
+     * (non-JSON) value hits Postgres "invalid input syntax for type json".
+     */
+    static String normalizeEvents(String events) {
+        if (events == null || events.isBlank()) {
+            return "[\"*\"]";
+        }
+        String trimmed = events.trim();
+        if (trimmed.startsWith("[")) {
+            return trimmed; // already a JSON array
+        }
+        StringBuilder sb = new StringBuilder("[");
+        boolean first = true;
+        for (String part : trimmed.split(",")) {
+            String e = part.trim();
+            if (e.isEmpty()) {
+                continue;
+            }
+            if (!first) {
+                sb.append(',');
+            }
+            sb.append('"').append(e.replace("\\", "\\\\").replace("\"", "\\\"")).append('"');
+            first = false;
+        }
+        sb.append(']');
+        return first ? "[\"*\"]" : sb.toString();
     }
 
     @Transactional

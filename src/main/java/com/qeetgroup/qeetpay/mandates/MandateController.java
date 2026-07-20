@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyRecord;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyService;
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -141,6 +142,7 @@ public class MandateController {
             @Positive long amountMinor,
             String description) {}
 
+    @Schema(name = "RecurringMandateView")
     public record MandateView(
             String id, String customerId, String type, long limitMinor, String currency,
             String frequency, String startDate, String endDate, String status, String providerMandateId) {

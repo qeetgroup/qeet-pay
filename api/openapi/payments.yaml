@@ -1,0 +1,1620 @@
+openapi: 3.1.0
+info:
+  title: Qeet Pay API
+  description: "Qeet Pay — India-first payments, billing and GST infrastructure (UPI\
+    \ / Cards / NACH). Programmatic `/v1` calls authenticate with a `qp_live_` / `qp_test_`\
+    \ API key via the `X-Api-Key` header; money is always in integer minor units (paise)."
+  contact:
+    name: Qeet Group
+    url: https://qeet.in
+  license:
+    name: Proprietary
+    url: https://qeet.in
+  version: v1
+servers:
+- url: http://localhost:4201
+  description: Local development
+- url: https://api.pay.qeet.in
+  description: Production
+security:
+- ApiKeyAuth: []
+tags:
+- name: Billing
+  description: "Plans, subscriptions, invoices and usage metering."
+- name: Payouts
+  description: Single and bulk payouts under maker-checker approval.
+- name: Lending
+  description: Working-capital advances repaid from settlements.
+- name: Mandates
+  description: Recurring mandates and idempotent mandate debits.
+- name: Revenue Recognition
+  description: IndAS 115 deferred-revenue schedules.
+- name: KYB
+  description: Merchant Know-Your-Business verification.
+- name: GST Invoicing
+  description: GST invoices and credit/debit notes.
+- name: Cards
+  description: Virtual expense/wallet cards.
+- name: E-Invoicing (IRN)
+  description: IRP registration for IRN + signed QR.
+- name: GST Returns
+  description: GSTR-1/GSTR-3B preparation and GSTN filing.
+- name: Messaging
+  description: WhatsApp/SMS/email templates and dispatch.
+- name: Payments
+  description: Inbound Razorpay webhook receiver — authenticity verified via HMAC-SHA256
+    on the raw body.
+- name: Payment Links
+  description: Shareable payment links — fixed or payer-entered amount.
+- name: Insurance
+  description: Embedded protection policies and claims.
+- name: Cross-Border
+  description: Export invoices and inward FX remittances (FIRA).
+- name: Orchestration
+  description: "Smart provider routing — inspect per-provider scorecards (auth rate,\
+    \ health, cost) and set the cost basis."
+- name: Merchants
+  description: Merchant onboarding and current-merchant profile.
+- name: Mandates
+  description: Recurring-mandate lifecycle (create → activate → pause/resume → revoke)
+    and idempotent mandate debits.
+- name: Payments
+  description: "Accept payments (create, capture) and inbound provider webhooks."
+- name: Orchestration
+  description: Smart provider routing — scorecards and cost basis.
+- name: Platform
+  description: Request-identity introspection and health probes.
+- name: Reconciliation
+  description: Provider settlements and auto-reconciliation.
+- name: TDS / TCS
+  description: "Tax-at-source deductions, certificates and summaries."
+- name: Escrow
+  description: "Conditional hold, release-to-seller and refund."
+- name: Payment Links
+  description: "Create, read, list and cancel shareable payment links (fixed or open\
+    \ amount), and pay a link by its code."
+- name: Virtual Accounts
+  description: "Mint per-customer virtual accounts, ingest auto-reconciled inbound\
+    \ credits, and read accounts with their credits."
+- name: Input Tax Credit
+  description: Purchase invoices reconciled against GSTR-2B.
+- name: Analytics
+  description: "TPV, MRR/ARR, success rate and cash-flow forecasting."
+- name: Checkout
+  description: "Public hosted-checkout — pay a link by its code, no API key."
+- name: Marketplace
+  description: Seller registration and split settlements (TCS/TDS).
+- name: Dunning
+  description: Failed-payment retry rules and attempt history.
+- name: ESG / Carbon
+  description: Per-transaction carbon footprint and offsets.
+- name: Checkout
+  description: Public hosted-checkout — resolve a payment link by code and pay it
+    with no merchant API key.
+- name: Ledger
+  description: Double-entry ledger accounts and balanced journal entries.
+- name: Virtual Accounts
+  description: Per-customer virtual accounts with auto-reconciled credits.
+- name: Webhooks
+  description: Webhook endpoint registration and delivery history.
+- name: BNPL
+  description: Buy-Now-Pay-Later installment agreements.
+- name: Payments
+  description: "Accept payments — create authorizes, capture posts the ledger entry\
+    \ (idempotent), read and list."
+paths:
+  /v1/payments/providers/{provider}/cost:
+    put:
+      tags:
+      - Orchestration
+      operationId: setCost
+      parameters:
+      - name: provider
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CostRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ScorecardView"
+  /v1/virtual-accounts:
+    get:
+      tags:
+      - Virtual Accounts
+      operationId: list
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VirtualAccountView"
+    post:
+      tags:
+      - Virtual Accounts
+      operationId: mint
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MintRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/VirtualAccountView"
+  /v1/virtual-accounts/{vaId}/credits:
+    post:
+      tags:
+      - Virtual Accounts
+      operationId: credit
+      parameters:
+      - name: vaId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreditRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CreditView"
+  /v1/virtual-accounts/{vaId}/close:
+    post:
+      tags:
+      - Virtual Accounts
+      operationId: close
+      parameters:
+      - name: vaId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/VirtualAccountView"
+  /v1/payments:
+    get:
+      tags:
+      - Payments
+      operationId: list_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaymentView"
+    post:
+      tags:
+      - Payments
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PaymentView"
+  /v1/payments/{id}/refund:
+    post:
+      tags:
+      - Payments
+      operationId: refund
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefundRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/payments/{id}/capture:
+    post:
+      tags:
+      - Payments
+      operationId: capture
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/payments/razorpay/webhook:
+    post:
+      tags:
+      - Payments
+      operationId: handleWebhook
+      parameters:
+      - name: X-Razorpay-Signature
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: X-Razorpay-Event-Id
+        in: header
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+        required: true
+      responses:
+        "200":
+          description: OK
+  /v1/payment-links:
+    get:
+      tags:
+      - Payment Links
+      operationId: list_2
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LinkView"
+    post:
+      tags:
+      - Payment Links
+      operationId: create_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLinkRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LinkView"
+  /v1/payment-links/{linkId}/cancel:
+    post:
+      tags:
+      - Payment Links
+      operationId: cancel
+      parameters:
+      - name: linkId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LinkView"
+  /v1/payment-links/{code}/pay:
+    post:
+      tags:
+      - Payment Links
+      operationId: pay
+      parameters:
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentLinkPayRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LinkView"
+  /v1/offline/upi-lite/wallets:
+    get:
+      tags:
+      - offline-controller
+      operationId: listWallets
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WalletView"
+    post:
+      tags:
+      - offline-controller
+      operationId: createWallet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWalletRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/WalletView"
+  /v1/offline/upi-lite/wallets/{walletId}/topup:
+    post:
+      tags:
+      - offline-controller
+      operationId: topUp
+      parameters:
+      - name: walletId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OfflineAmountRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TxnView"
+  /v1/offline/upi-lite/wallets/{walletId}/spend:
+    post:
+      tags:
+      - offline-controller
+      operationId: spend
+      parameters:
+      - name: walletId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OfflineAmountRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TxnView"
+  /v1/offline/pos/transactions:
+    get:
+      tags:
+      - offline-controller
+      operationId: listTransactions
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PosTxnView"
+    post:
+      tags:
+      - offline-controller
+      operationId: capture_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PosCaptureRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PosTxnView"
+  /v1/offline/pos/devices:
+    get:
+      tags:
+      - offline-controller
+      operationId: listDevices
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeviceView"
+    post:
+      tags:
+      - offline-controller
+      operationId: registerDevice
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterDeviceRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DeviceView"
+  /v1/offline/bharat-qr:
+    get:
+      tags:
+      - offline-controller
+      operationId: listQr
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BharatQrView"
+    post:
+      tags:
+      - offline-controller
+      operationId: generateQr
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BharatQrRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/BharatQrView"
+  /v1/offline/123pay/intents:
+    get:
+      tags:
+      - offline-controller
+      operationId: listIntents
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IntentView"
+    post:
+      tags:
+      - offline-controller
+      operationId: createIntent
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Intent123Request"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IntentView"
+  /v1/offline/123pay/intents/{intentId}/confirm:
+    post:
+      tags:
+      - offline-controller
+      operationId: confirmIntent
+      parameters:
+      - name: intentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IntentView"
+  /v1/mandates:
+    get:
+      tags:
+      - Mandates
+      operationId: list_3
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecurringMandateView"
+    post:
+      tags:
+      - Mandates
+      operationId: create_2
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMandateRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RecurringMandateView"
+  /v1/mandates/{id}/revoke:
+    post:
+      tags:
+      - Mandates
+      operationId: revoke
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RecurringMandateView"
+  /v1/mandates/{id}/pause:
+    post:
+      tags:
+      - Mandates
+      operationId: pause
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RecurringMandateView"
+  /v1/mandates/{id}/debit:
+    post:
+      tags:
+      - Mandates
+      operationId: debit
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DebitRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /v1/mandates/{id}/activate:
+    post:
+      tags:
+      - Mandates
+      operationId: activate
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RecurringMandateView"
+  /v1/checkout/{code}/pay:
+    post:
+      tags:
+      - Checkout
+      operationId: pay_1
+      parameters:
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutPayRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PayResult"
+  /v1/virtual-accounts/{vaId}:
+    get:
+      tags:
+      - Virtual Accounts
+      operationId: get
+      parameters:
+      - name: vaId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AccountWithCreditsView"
+  /v1/payments/{id}:
+    get:
+      tags:
+      - Payments
+      operationId: get_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PaymentView"
+  /v1/payments/{id}/refunds:
+    get:
+      tags:
+      - Payments
+      operationId: refunds
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RefundView"
+  /v1/payments/providers/scorecards:
+    get:
+      tags:
+      - Orchestration
+      operationId: scorecards
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScorecardView"
+  /v1/payments/providers/routing-explain:
+    get:
+      tags:
+      - Orchestration
+      operationId: routingExplain
+      parameters:
+      - name: candidates
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+      - name: gstin
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: placeOfSupply
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RoutingExplainView"
+  /v1/payment-links/{linkId}:
+    get:
+      tags:
+      - Payment Links
+      operationId: get_2
+      parameters:
+      - name: linkId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LinkView"
+  /v1/payment-links/by-code/{code}:
+    get:
+      tags:
+      - Payment Links
+      operationId: getByCode
+      parameters:
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LinkView"
+  /v1/offline/upi-lite/wallets/{walletId}:
+    get:
+      tags:
+      - offline-controller
+      operationId: getWallet
+      parameters:
+      - name: walletId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/WalletWithTxnsView"
+  /v1/mandates/{id}:
+    get:
+      tags:
+      - Mandates
+      operationId: get_3
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RecurringMandateView"
+  /v1/mandates/{id}/debits:
+    get:
+      tags:
+      - Mandates
+      operationId: debits
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MandateDebitView"
+  /v1/checkout/{code}:
+    get:
+      tags:
+      - Checkout
+      operationId: get_4
+      parameters:
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PublicView"
+components:
+  schemas:
+    CostRequest:
+      type: object
+      properties:
+        costBps:
+          type: integer
+          format: int32
+          maximum: 10000
+          minimum: 0
+    ScorecardView:
+      type: object
+      properties:
+        provider:
+          type: string
+        attempts:
+          type: integer
+          format: int64
+        successes:
+          type: integer
+          format: int64
+        failures:
+          type: integer
+          format: int64
+        authRate:
+          type: number
+          format: double
+        consecutiveFailures:
+          type: integer
+          format: int32
+        costBps:
+          type: integer
+          format: int32
+        health:
+          type: string
+        lastOutcomeAt:
+          type: string
+          format: date-time
+    MintRequest:
+      type: object
+      properties:
+        customerRef:
+          type: string
+          minLength: 1
+      required:
+      - customerRef
+    VirtualAccountView:
+      type: object
+      properties:
+        id:
+          type: string
+        customerRef:
+          type: string
+        vaNumber:
+          type: string
+        ifsc:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+    CreditRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        utr:
+          type: string
+          minLength: 1
+        payerName:
+          type: string
+        payerRef:
+          type: string
+      required:
+      - amountMinor
+      - currency
+      - utr
+    CreditView:
+      type: object
+      properties:
+        id:
+          type: string
+        vaId:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        utr:
+          type: string
+        payerName:
+          type: string
+        payerRef:
+          type: string
+        ledgerEntryId:
+          type: string
+        creditedAt:
+          type: string
+          format: date-time
+    CreatePaymentRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        method:
+          type: string
+          enum:
+          - UPI
+          - CARD
+          - NET_BANKING
+          - WALLET
+        description:
+          type: string
+        simulateFailure:
+          type: boolean
+      required:
+      - currency
+      - method
+    PaymentView:
+      type: object
+      properties:
+        id:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        method:
+          type: string
+        status:
+          type: string
+        providerPaymentId:
+          type: string
+        ledgerEntryId:
+          type: string
+    RefundRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        reason:
+          type: string
+    CreateLinkRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        reference:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+      required:
+      - currency
+      - title
+    LinkView:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        title:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        reference:
+          type: string
+        status:
+          type: string
+        paymentId:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        paidAt:
+          type: string
+          format: date-time
+    PaymentLinkPayRequest:
+      type: object
+      properties:
+        method:
+          type: string
+          enum:
+          - UPI
+          - CARD
+          - NET_BANKING
+          - WALLET
+        amountMinor:
+          type: integer
+          format: int64
+        simulateFailure:
+          type: boolean
+      required:
+      - method
+    CreateWalletRequest:
+      type: object
+      properties:
+        customerRef:
+          type: string
+          minLength: 1
+        currency:
+          type: string
+      required:
+      - customerRef
+    WalletView:
+      type: object
+      properties:
+        id:
+          type: string
+        customerRef:
+          type: string
+        balanceMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+    OfflineAmountRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+      required:
+      - amountMinor
+    TxnView:
+      type: object
+      properties:
+        id:
+          type: string
+        walletId:
+          type: string
+        type:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        ledgerEntryId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    PosCaptureRequest:
+      type: object
+      properties:
+        deviceId:
+          type: string
+          format: uuid
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        method:
+          type: string
+      required:
+      - amountMinor
+      - deviceId
+    PosTxnView:
+      type: object
+      properties:
+        id:
+          type: string
+        deviceId:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        method:
+          type: string
+        rrn:
+          type: string
+        ledgerEntryId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    RegisterDeviceRequest:
+      type: object
+      properties:
+        label:
+          type: string
+          minLength: 1
+        serialNo:
+          type: string
+          minLength: 1
+      required:
+      - label
+      - serialNo
+    DeviceView:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        serialNo:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    BharatQrRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        merchantName:
+          type: string
+        reference:
+          type: string
+    BharatQrView:
+      type: object
+      properties:
+        id:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        dynamic:
+          type: boolean
+        currency:
+          type: string
+        merchantName:
+          type: string
+        reference:
+          type: string
+        payload:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    Intent123Request:
+      type: object
+      properties:
+        payerMobile:
+          type: string
+          minLength: 1
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+      required:
+      - amountMinor
+      - payerMobile
+    IntentView:
+      type: object
+      properties:
+        id:
+          type: string
+        payerMobile:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        confirmedAt:
+          type: string
+          format: date-time
+    CreateMandateRequest:
+      type: object
+      properties:
+        customerRef:
+          type: string
+          minLength: 1
+        type:
+          type: string
+          enum:
+          - UPI_AUTOPAY
+          - NACH
+        limitMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        frequency:
+          type: string
+          enum:
+          - DAILY
+          - WEEKLY
+          - MONTHLY
+          - YEARLY
+          - AS_PRESENTED
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+      required:
+      - customerRef
+      - frequency
+      - startDate
+      - type
+    RecurringMandateView:
+      type: object
+      properties:
+        id:
+          type: string
+        customerId:
+          type: string
+        type:
+          type: string
+        limitMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        frequency:
+          type: string
+        startDate:
+          type: string
+        endDate:
+          type: string
+        status:
+          type: string
+        providerMandateId:
+          type: string
+    DebitRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        description:
+          type: string
+    ActivateRequest:
+      type: object
+      properties:
+        providerMandateId:
+          type: string
+    CheckoutPayRequest:
+      type: object
+      properties:
+        method:
+          type: string
+          enum:
+          - UPI
+          - CARD
+          - NET_BANKING
+          - WALLET
+        amountMinor:
+          type: integer
+          format: int64
+        customerName:
+          type: string
+        customerEmail:
+          type: string
+      required:
+      - method
+    PayResult:
+      type: object
+      properties:
+        code:
+          type: string
+        status:
+          type: string
+        paid:
+          type: boolean
+    AccountWithCreditsView:
+      type: object
+      properties:
+        account:
+          $ref: "#/components/schemas/VirtualAccountView"
+        credits:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreditView"
+    RefundView:
+      type: object
+      properties:
+        id:
+          type: string
+        paymentId:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+    ComplianceView:
+      type: object
+      properties:
+        gstinPresent:
+          type: boolean
+        gstinValid:
+          type: boolean
+        supplierStateCode:
+          type: string
+        placeOfSupplyStateCode:
+          type: string
+        supplyType:
+          type: string
+        igstApplicable:
+          type: boolean
+        compliant:
+          type: boolean
+        notes:
+          type: array
+          items:
+            type: string
+    RankedProviderView:
+      type: object
+      properties:
+        provider:
+          type: string
+        predictedAuthRate:
+          type: number
+          format: double
+        costBps:
+          type: integer
+          format: int32
+        health:
+          type: string
+        score:
+          type: number
+          format: double
+        why:
+          type: string
+    RoutingExplainView:
+      type: object
+      properties:
+        ranking:
+          type: array
+          items:
+            $ref: "#/components/schemas/RankedProviderView"
+        recommendedProvider:
+          type: string
+        method:
+          type: string
+        aiAssisted:
+          type: boolean
+        decisionId:
+          type: string
+        compliance:
+          $ref: "#/components/schemas/ComplianceView"
+        explanation:
+          type: string
+    WalletWithTxnsView:
+      type: object
+      properties:
+        wallet:
+          $ref: "#/components/schemas/WalletView"
+        txns:
+          type: array
+          items:
+            $ref: "#/components/schemas/TxnView"
+    MandateDebitView:
+      type: object
+      properties:
+        id:
+          type: string
+        mandateId:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+    PublicView:
+      type: object
+      properties:
+        code:
+          type: string
+        title:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        status:
+          type: string
+        merchantName:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      description: Programmatic API key (`qp_live_…` / `qp_test_…`) presented as the
+        `X-Api-Key` header.
+      name: X-Api-Key
+      in: header

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyRecord;
 import com.qeetgroup.qeetpay.platform.idempotency.IdempotencyService;
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -225,6 +226,7 @@ public class BillingController {
 
     public record UpgradeView(String subscriptionId, String newPlanId, long prorationMinor, String prorationInvoiceId) {}
 
+    @Schema(name = "BillingInvoiceView")
     public record InvoiceView(String id, String subscriptionId, long amountMinor, String currency, String status, String ledgerEntryId) {
         static InvoiceView of(Invoice i) {
             return new InvoiceView(

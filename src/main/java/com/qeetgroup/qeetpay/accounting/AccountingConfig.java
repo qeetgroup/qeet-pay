@@ -10,8 +10,9 @@ import org.springframework.context.annotation.Configuration;
  * Wires the credential-gated ZOHO connector and its sandbox fallback. Declaring both as ordered
  * {@code @Bean} methods in one {@code @Configuration} makes the {@code @ConditionalOnMissingBean}
  * evaluation deterministic (it reliably sees the earlier-declared {@code zohoBooksConnector}),
- * unlike two independently component-scanned beans. {@link TallyXmlConnector} and
- * {@link WebhookConnector} need no creds and stay plain {@code @Component}s.
+ * unlike two independently component-scanned beans. The credential-gated SAP Business One connector
+ * follows the same {@code @Bean} pattern. {@link TallyXmlConnector} and {@link WebhookConnector} need
+ * no creds and stay plain {@code @Component}s.
  */
 @Configuration
 public class AccountingConfig {
@@ -21,6 +22,13 @@ public class AccountingConfig {
     @ConditionalOnProperty(prefix = "qeetpay.accounting.zoho", name = "enabled", havingValue = "true")
     public ZohoBooksConnector zohoBooksConnector(ZohoBooksProperties props, ObjectMapper objectMapper) {
         return new ZohoBooksConnector(props, objectMapper);
+    }
+
+    /** Live SAP Business One connector — only when creds are configured. */
+    @Bean
+    @ConditionalOnProperty(prefix = "qeetpay.accounting.sap", name = "enabled", havingValue = "true")
+    public SapConnector sapConnector(SapProperties props, ObjectMapper objectMapper) {
+        return new SapConnector(props, objectMapper);
     }
 
     /** Sandbox stand-in for the ZOHO target when no live Zoho connector is present. */

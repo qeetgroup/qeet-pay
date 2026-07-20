@@ -11,6 +11,8 @@ import datetime
 import math
 from dataclasses import dataclass
 
+from app.model import ip_risk
+
 # ---------------------------------------------------------------------------
 # Method risk map: 0 = low; 1 = medium; 2 = high
 # ---------------------------------------------------------------------------
@@ -88,5 +90,12 @@ def extract(
 
 
 def _ip_risk(ip: str | None) -> float:
-    """Stub IP risk: returns 0.0 (trusted) for all IPs. Production integrates MaxMind."""
-    return 0.0
+    """Resolve a client IP to a risk signal in ``[0.0, 1.0]`` (0.0 = trusted).
+
+    Delegates to :mod:`app.model.ip_risk`, which uses MaxMind GeoIP2/GeoLite2 when
+    configured (``MAXMIND_DB_PATH`` or ``MAXMIND_ACCOUNT_ID`` /
+    ``MAXMIND_LICENSE_KEY``) and a deterministic offline heuristic otherwise
+    (private/loopback = 0.0; sampled high-risk/anonymizer CIDRs = high; other
+    public IPs = a light default). Never raises.
+    """
+    return ip_risk.resolve(ip)

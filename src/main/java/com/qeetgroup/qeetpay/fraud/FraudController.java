@@ -3,6 +3,7 @@ package com.qeetgroup.qeetpay.fraud;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Instant;
 import java.util.List;
@@ -44,6 +45,7 @@ public class FraudController {
     // ── Records ──────────────────────────────────────────────────────────────
 
     /** List row — the verdict + score without the (potentially large) explanation payload. */
+    @Schema(name = "FraudDecisionSummary")
     public record DecisionSummary(
             String id,
             String paymentId,
@@ -63,6 +65,7 @@ public class FraudController {
     }
 
     /** Full view — adds the parsed Explainable-AI top contributing features. */
+    @Schema(name = "FraudDecisionView")
     public record DecisionView(
             String id,
             String paymentId,

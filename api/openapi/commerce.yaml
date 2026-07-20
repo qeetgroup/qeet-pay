@@ -1,0 +1,2280 @@
+openapi: 3.1.0
+info:
+  title: Qeet Pay API
+  description: "Qeet Pay — India-first payments, billing and GST infrastructure (UPI\
+    \ / Cards / NACH). Programmatic `/v1` calls authenticate with a `qp_live_` / `qp_test_`\
+    \ API key via the `X-Api-Key` header; money is always in integer minor units (paise)."
+  contact:
+    name: Qeet Group
+    url: https://qeet.in
+  license:
+    name: Proprietary
+    url: https://qeet.in
+  version: v1
+servers:
+- url: http://localhost:4201
+  description: Local development
+- url: https://api.pay.qeet.in
+  description: Production
+security:
+- ApiKeyAuth: []
+tags:
+- name: Billing
+  description: "Plans, subscriptions, invoices and usage metering."
+- name: Cross-Border
+  description: "Foreign-currency export invoices and FX-converted inward remittances\
+    \ (FIRA), with LUT/FEMA purpose codes."
+- name: Payouts
+  description: Single and bulk payouts under maker-checker approval.
+- name: Lending
+  description: Working-capital advances repaid from settlements.
+- name: ESG / Carbon
+  description: "Per-transaction carbon-footprint estimation, footprint history and\
+    \ aggregate summary, and carbon-offset purchases."
+- name: Mandates
+  description: Recurring mandates and idempotent mandate debits.
+- name: Revenue Recognition
+  description: IndAS 115 deferred-revenue schedules.
+- name: KYB
+  description: Merchant Know-Your-Business verification.
+- name: GST Invoicing
+  description: GST invoices and credit/debit notes.
+- name: Cards
+  description: Virtual expense/wallet cards.
+- name: E-Invoicing (IRN)
+  description: IRP registration for IRN + signed QR.
+- name: GST Returns
+  description: GSTR-1/GSTR-3B preparation and GSTN filing.
+- name: Messaging
+  description: WhatsApp/SMS/email templates and dispatch.
+- name: Payment Links
+  description: Shareable payment links — fixed or payer-entered amount.
+- name: BNPL
+  description: "Buy-Now-Pay-Later — open agreements (fund the merchant upfront), read\
+    \ installment schedules, and record repayments."
+- name: ONDC
+  description: "Multi-party settlement for ONDC network orders: create with per-party\
+    \ lines, fulfil, settle post-fulfilment (commission + GST + statutory TCS §52),\
+    \ and cancel."
+- name: Insurance
+  description: Embedded protection policies and claims.
+- name: Cross-Border
+  description: Export invoices and inward FX remittances (FIRA).
+- name: Merchants
+  description: Merchant onboarding and current-merchant profile.
+- name: Payments
+  description: "Accept payments (create, capture) and inbound provider webhooks."
+- name: Orchestration
+  description: Smart provider routing — scorecards and cost basis.
+- name: Platform
+  description: Request-identity introspection and health probes.
+- name: Reconciliation
+  description: Provider settlements and auto-reconciliation.
+- name: TDS / TCS
+  description: "Tax-at-source deductions, certificates and summaries."
+- name: Escrow
+  description: "Conditional hold, release-to-seller and refund."
+- name: Input Tax Credit
+  description: Purchase invoices reconciled against GSTR-2B.
+- name: Analytics
+  description: "TPV, MRR/ARR, success rate and cash-flow forecasting."
+- name: Cross-Border — Outbound
+  description: "Outbound/import remittances to foreign vendors via SWIFT, with LRS\
+    \ tracking + 2.5% TCS."
+- name: Escrow
+  description: "Conditional escrow — hold buyer funds, release (partly) to the seller\
+    \ or refund to the buyer, with event history."
+- name: Marketplace
+  description: Register sellers and split a collected payment across them with commission
+    + statutory TCS/TDS; read and cancel splits.
+- name: Checkout
+  description: "Public hosted-checkout — pay a link by its code, no API key."
+- name: Marketplace
+  description: Seller registration and split settlements (TCS/TDS).
+- name: Lending
+  description: Working-capital advances — request/accept offers (disburses funds)
+    and apply settlement sweeps to repayment.
+- name: Dunning
+  description: Failed-payment retry rules and attempt history.
+- name: ESG / Carbon
+  description: Per-transaction carbon footprint and offsets.
+- name: Cards
+  description: "Virtual expense/wallet cards — issue, load funds, spend, freeze/unfreeze/close,\
+    \ and read transaction history."
+- name: Ledger
+  description: Double-entry ledger accounts and balanced journal entries.
+- name: Virtual Accounts
+  description: Per-customer virtual accounts with auto-reconciled credits.
+- name: Webhooks
+  description: Webhook endpoint registration and delivery history.
+- name: BNPL
+  description: Buy-Now-Pay-Later installment agreements.
+- name: Insurance
+  description: "Embedded insurance — issue protection policies (collecting premium)\
+    \ and file, approve or reject claims."
+paths:
+  /v1/ondc/orders:
+    get:
+      tags:
+      - ONDC
+      operationId: listOrders
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrderSummary"
+    post:
+      tags:
+      - ONDC
+      operationId: createOrder
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OrderView"
+  /v1/ondc/orders/{orderId}/settle:
+    post:
+      tags:
+      - ONDC
+      operationId: settle
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OrderView"
+  /v1/ondc/orders/{orderId}/fulfill:
+    post:
+      tags:
+      - ONDC
+      operationId: fulfill
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OrderView"
+  /v1/ondc/orders/{orderId}/cancel:
+    post:
+      tags:
+      - ONDC
+      operationId: cancel
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OrderView"
+  /v1/marketplace/splits:
+    get:
+      tags:
+      - Marketplace
+      operationId: listSplits
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SplitSummary"
+    post:
+      tags:
+      - Marketplace
+      operationId: createSplit
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSplitRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SplitView"
+  /v1/marketplace/splits/{splitId}/cancel:
+    post:
+      tags:
+      - Marketplace
+      operationId: cancelSplit
+      parameters:
+      - name: splitId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SplitView"
+  /v1/marketplace/sellers:
+    get:
+      tags:
+      - Marketplace
+      operationId: listSellers
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SellerView"
+    post:
+      tags:
+      - Marketplace
+      operationId: registerSeller
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterSellerRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SellerView"
+  /v1/marketplace/sellers/{sellerId}/suspend:
+    post:
+      tags:
+      - Marketplace
+      operationId: suspend
+      parameters:
+      - name: sellerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SellerView"
+  /v1/marketplace/sellers/{sellerId}/activate:
+    post:
+      tags:
+      - Marketplace
+      operationId: activate
+      parameters:
+      - name: sellerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SellerView"
+  /v1/lending/offers:
+    get:
+      tags:
+      - Lending
+      operationId: listOffers
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OfferView"
+    post:
+      tags:
+      - Lending
+      operationId: requestOffer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OfferRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OfferView"
+  /v1/lending/offers/{offerId}/accept:
+    post:
+      tags:
+      - Lending
+      operationId: accept
+      parameters:
+      - name: offerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LoanView"
+  /v1/lending/loans/{loanId}/repayments:
+    post:
+      tags:
+      - Lending
+      operationId: applyRepayment
+      parameters:
+      - name: loanId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepaymentRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LoanView"
+  /v1/insurance/policies:
+    get:
+      tags:
+      - Insurance
+      operationId: list
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PolicySummary"
+    post:
+      tags:
+      - Insurance
+      operationId: issue
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IssuePolicyRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PolicyView"
+  /v1/insurance/policies/{policyId}/claims:
+    post:
+      tags:
+      - Insurance
+      operationId: fileClaim
+      parameters:
+      - name: policyId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FileClaimRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ClaimView"
+  /v1/insurance/policies/{policyId}/cancel:
+    post:
+      tags:
+      - Insurance
+      operationId: cancel_1
+      parameters:
+      - name: policyId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PolicyView"
+  /v1/insurance/claims/{claimId}/reject:
+    post:
+      tags:
+      - Insurance
+      operationId: reject
+      parameters:
+      - name: claimId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ClaimView"
+  /v1/insurance/claims/{claimId}/approve:
+    post:
+      tags:
+      - Insurance
+      operationId: approve
+      parameters:
+      - name: claimId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ClaimView"
+  /v1/esg/offsets:
+    post:
+      tags:
+      - ESG / Carbon
+      operationId: offset
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OffsetRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OffsetView"
+  /v1/esg/footprints:
+    get:
+      tags:
+      - ESG / Carbon
+      operationId: list_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecordView"
+    post:
+      tags:
+      - ESG / Carbon
+      operationId: record
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FootprintRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RecordView"
+  /v1/escrow:
+    get:
+      tags:
+      - Escrow
+      operationId: list_2
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EscrowAgreementSummary"
+    post:
+      tags:
+      - Escrow
+      operationId: hold
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HoldRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EscrowAgreementView"
+  /v1/escrow/{escrowId}/release:
+    post:
+      tags:
+      - Escrow
+      operationId: release
+      parameters:
+      - name: escrowId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MovementRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EscrowAgreementView"
+  /v1/escrow/{escrowId}/refund:
+    post:
+      tags:
+      - Escrow
+      operationId: refund
+      parameters:
+      - name: escrowId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MovementRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EscrowAgreementView"
+  /v1/crossborder/outbound:
+    get:
+      tags:
+      - Cross-Border — Outbound
+      operationId: list_3
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OutboundRemittanceView"
+    post:
+      tags:
+      - Cross-Border — Outbound
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRemittanceRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OutboundRemittanceView"
+  /v1/crossborder/outbound/{remittanceId}/mark-remitted:
+    post:
+      tags:
+      - Cross-Border — Outbound
+      operationId: markRemitted
+      parameters:
+      - name: remittanceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarkRemittedRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OutboundRemittanceView"
+  /v1/crossborder/outbound/{remittanceId}/mark-failed:
+    post:
+      tags:
+      - Cross-Border — Outbound
+      operationId: markFailed
+      parameters:
+      - name: remittanceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarkFailedRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OutboundRemittanceView"
+  /v1/crossborder/outbound/quote:
+    post:
+      tags:
+      - Cross-Border — Outbound
+      operationId: quote
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuoteRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/QuoteView"
+  /v1/crossborder/export-invoices:
+    get:
+      tags:
+      - Cross-Border
+      operationId: list_4
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InvoiceSummary"
+    post:
+      tags:
+      - Cross-Border
+      operationId: create_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateExportInvoiceRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CrossBorderInvoiceView"
+  /v1/crossborder/export-invoices/{exportInvoiceId}/remittances:
+    post:
+      tags:
+      - Cross-Border
+      operationId: recordRemittance
+      parameters:
+      - name: exportInvoiceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RemittanceRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CrossBorderRemittanceView"
+  /v1/cards:
+    get:
+      tags:
+      - Cards
+      operationId: list_5
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CardSummary"
+    post:
+      tags:
+      - Cards
+      operationId: issue_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardIssueRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CardView"
+  /v1/cards/{cardId}/unfreeze:
+    post:
+      tags:
+      - Cards
+      operationId: unfreeze
+      parameters:
+      - name: cardId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CardView"
+  /v1/cards/{cardId}/spend:
+    post:
+      tags:
+      - Cards
+      operationId: spend
+      parameters:
+      - name: cardId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SpendRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CardView"
+  /v1/cards/{cardId}/load:
+    post:
+      tags:
+      - Cards
+      operationId: load
+      parameters:
+      - name: cardId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardAmountRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CardView"
+  /v1/cards/{cardId}/freeze:
+    post:
+      tags:
+      - Cards
+      operationId: freeze
+      parameters:
+      - name: cardId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CardView"
+  /v1/cards/{cardId}/close:
+    post:
+      tags:
+      - Cards
+      operationId: close
+      parameters:
+      - name: cardId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CardView"
+  /v1/bnpl/agreements:
+    get:
+      tags:
+      - BNPL
+      operationId: list_6
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BnplAgreementSummary"
+    post:
+      tags:
+      - BNPL
+      operationId: create_2
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAgreementRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/BnplAgreementView"
+  /v1/bnpl/agreements/{agreementId}/installments/{seq}/pay:
+    post:
+      tags:
+      - BNPL
+      operationId: pay
+      parameters:
+      - name: agreementId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: seq
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/BnplAgreementView"
+  /v1/ondc/orders/{orderId}:
+    get:
+      tags:
+      - ONDC
+      operationId: getOrder
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OrderView"
+  /v1/marketplace/splits/{splitId}:
+    get:
+      tags:
+      - Marketplace
+      operationId: getSplit
+      parameters:
+      - name: splitId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SplitView"
+  /v1/lending/loans:
+    get:
+      tags:
+      - Lending
+      operationId: listLoans
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LoanSummary"
+  /v1/lending/loans/{loanId}:
+    get:
+      tags:
+      - Lending
+      operationId: getLoan
+      parameters:
+      - name: loanId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LoanView"
+  /v1/insurance/policies/{policyId}:
+    get:
+      tags:
+      - Insurance
+      operationId: get
+      parameters:
+      - name: policyId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PolicyView"
+  /v1/esg/summary:
+    get:
+      tags:
+      - ESG / Carbon
+      operationId: summary
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/FootprintSummary"
+  /v1/escrow/{escrowId}:
+    get:
+      tags:
+      - Escrow
+      operationId: get_1
+      parameters:
+      - name: escrowId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EscrowAgreementView"
+  /v1/crossborder/outbound/{remittanceId}:
+    get:
+      tags:
+      - Cross-Border — Outbound
+      operationId: get_2
+      parameters:
+      - name: remittanceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RemittanceDetailView"
+  /v1/crossborder/export-invoices/{exportInvoiceId}:
+    get:
+      tags:
+      - Cross-Border
+      operationId: get_3
+      parameters:
+      - name: exportInvoiceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CrossBorderInvoiceView"
+  /v1/cards/{cardId}:
+    get:
+      tags:
+      - Cards
+      operationId: get_4
+      parameters:
+      - name: cardId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CardView"
+  /v1/bnpl/agreements/{agreementId}:
+    get:
+      tags:
+      - BNPL
+      operationId: get_5
+      parameters:
+      - name: agreementId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/BnplAgreementView"
+components:
+  schemas:
+    CreateOrderRequest:
+      type: object
+      properties:
+        networkOrderId:
+          type: string
+          minLength: 1
+        buyerApp:
+          type: string
+          minLength: 1
+        sellerApp:
+          type: string
+          minLength: 1
+        currency:
+          type: string
+          minLength: 1
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderLineRequest"
+          minItems: 1
+      required:
+      - buyerApp
+      - currency
+      - lines
+      - networkOrderId
+      - sellerApp
+    OrderLineRequest:
+      type: object
+      properties:
+        partyRef:
+          type: string
+          minLength: 1
+        role:
+          type: string
+        grossMinor:
+          type: integer
+          format: int64
+        commissionBps:
+          type: integer
+          format: int32
+        commissionGstRate:
+          type: integer
+          format: int32
+        tcsBps:
+          type: integer
+          format: int32
+      required:
+      - grossMinor
+      - partyRef
+    OrderLineView:
+      type: object
+      properties:
+        partyRef:
+          type: string
+        role:
+          type: string
+        grossMinor:
+          type: integer
+          format: int64
+        commissionMinor:
+          type: integer
+          format: int64
+        commissionGstMinor:
+          type: integer
+          format: int64
+        tcsMinor:
+          type: integer
+          format: int64
+        netMinor:
+          type: integer
+          format: int64
+    OrderSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        networkOrderId:
+          type: string
+        buyerApp:
+          type: string
+        sellerApp:
+          type: string
+        currency:
+          type: string
+        grossMinor:
+          type: integer
+          format: int64
+        commissionMinor:
+          type: integer
+          format: int64
+        commissionGstMinor:
+          type: integer
+          format: int64
+        tcsMinor:
+          type: integer
+          format: int64
+        partyNetMinor:
+          type: integer
+          format: int64
+        partyCount:
+          type: integer
+          format: int32
+        status:
+          type: string
+        holdEntryId:
+          type: string
+        settleEntryId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    OrderView:
+      type: object
+      properties:
+        order:
+          $ref: "#/components/schemas/OrderSummary"
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderLineView"
+    CreateSplitRequest:
+      type: object
+      properties:
+        paymentId:
+          type: string
+          format: uuid
+        sourceRef:
+          type: string
+        currency:
+          type: string
+          minLength: 1
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/SplitLineRequest"
+          minItems: 1
+      required:
+      - currency
+      - lines
+    SplitLineRequest:
+      type: object
+      properties:
+        sellerRef:
+          type: string
+          minLength: 1
+        grossMinor:
+          type: integer
+          format: int64
+        commissionBps:
+          type: integer
+          format: int32
+        commissionGstRate:
+          type: integer
+          format: int32
+        tcsBps:
+          type: integer
+          format: int32
+        tdsBps:
+          type: integer
+          format: int32
+      required:
+      - grossMinor
+      - sellerRef
+    SplitItemView:
+      type: object
+      properties:
+        sellerRef:
+          type: string
+        grossMinor:
+          type: integer
+          format: int64
+        commissionMinor:
+          type: integer
+          format: int64
+        commissionGstMinor:
+          type: integer
+          format: int64
+        tcsMinor:
+          type: integer
+          format: int64
+        tdsMinor:
+          type: integer
+          format: int64
+        netMinor:
+          type: integer
+          format: int64
+    SplitSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        currency:
+          type: string
+        grossMinor:
+          type: integer
+          format: int64
+        commissionMinor:
+          type: integer
+          format: int64
+        commissionGstMinor:
+          type: integer
+          format: int64
+        tcsMinor:
+          type: integer
+          format: int64
+        tdsMinor:
+          type: integer
+          format: int64
+        sellerNetMinor:
+          type: integer
+          format: int64
+        itemCount:
+          type: integer
+          format: int32
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    SplitView:
+      type: object
+      properties:
+        split:
+          $ref: "#/components/schemas/SplitSummary"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SplitItemView"
+    RegisterSellerRequest:
+      type: object
+      properties:
+        sellerRef:
+          type: string
+          minLength: 1
+        name:
+          type: string
+          minLength: 1
+        gstin:
+          type: string
+        pan:
+          type: string
+        commissionBps:
+          type: integer
+          format: int32
+      required:
+      - name
+      - sellerRef
+    SellerView:
+      type: object
+      properties:
+        id:
+          type: string
+        sellerRef:
+          type: string
+        name:
+          type: string
+        gstin:
+          type: string
+        pan:
+          type: string
+        commissionBps:
+          type: integer
+          format: int32
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    OfferRequest:
+      type: object
+      properties:
+        currency:
+          type: string
+          minLength: 1
+        avgMonthlyVolumeMinor:
+          type: integer
+          format: int64
+      required:
+      - avgMonthlyVolumeMinor
+      - currency
+    OfferView:
+      type: object
+      properties:
+        id:
+          type: string
+        currency:
+          type: string
+        principalMinor:
+          type: integer
+          format: int64
+        feeBps:
+          type: integer
+          format: int32
+        feeMinor:
+          type: integer
+          format: int64
+        totalRepayableMinor:
+          type: integer
+          format: int64
+        repaymentPercentBps:
+          type: integer
+          format: int32
+        status:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+    LoanSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        offerId:
+          type: string
+        currency:
+          type: string
+        principalMinor:
+          type: integer
+          format: int64
+        feeMinor:
+          type: integer
+          format: int64
+        totalRepayableMinor:
+          type: integer
+          format: int64
+        outstandingMinor:
+          type: integer
+          format: int64
+        repaymentPercentBps:
+          type: integer
+          format: int32
+        status:
+          type: string
+        disbursedEntryId:
+          type: string
+        disbursedAt:
+          type: string
+          format: date-time
+        repaidAt:
+          type: string
+          format: date-time
+    LoanView:
+      type: object
+      properties:
+        loan:
+          $ref: "#/components/schemas/LoanSummary"
+        repayments:
+          type: array
+          items:
+            $ref: "#/components/schemas/RepaymentView"
+    RepaymentView:
+      type: object
+      properties:
+        settlementAmountMinor:
+          type: integer
+          format: int64
+        sweptMinor:
+          type: integer
+          format: int64
+        ledgerEntryId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    RepaymentRequest:
+      type: object
+      properties:
+        settlementAmountMinor:
+          type: integer
+          format: int64
+        sourceRef:
+          type: string
+      required:
+      - settlementAmountMinor
+    IssuePolicyRequest:
+      type: object
+      properties:
+        product:
+          type: string
+          enum:
+          - PAYMENT_PROTECTION
+          - FRAUD_COVER
+          - SUBSCRIPTION_INTERRUPTION
+        holderRef:
+          type: string
+          minLength: 1
+        premiumMinor:
+          type: integer
+          format: int64
+        coverAmountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+      required:
+      - coverAmountMinor
+      - currency
+      - holderRef
+      - premiumMinor
+      - product
+    ClaimView:
+      type: object
+      properties:
+        id:
+          type: string
+        policyId:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        reason:
+          type: string
+        status:
+          type: string
+        payoutEntryId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        decidedAt:
+          type: string
+          format: date-time
+    PolicySummary:
+      type: object
+      properties:
+        id:
+          type: string
+        product:
+          type: string
+        holderRef:
+          type: string
+        currency:
+          type: string
+        premiumMinor:
+          type: integer
+          format: int64
+        coverAmountMinor:
+          type: integer
+          format: int64
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        cancelledAt:
+          type: string
+          format: date-time
+    PolicyView:
+      type: object
+      properties:
+        policy:
+          $ref: "#/components/schemas/PolicySummary"
+        claims:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClaimView"
+    FileClaimRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        reason:
+          type: string
+      required:
+      - amountMinor
+    RejectRequest:
+      type: object
+      properties:
+        note:
+          type: string
+    OffsetRequest:
+      type: object
+      properties:
+        gramsToOffset:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        pricePerTonneMinor:
+          type: integer
+          format: int64
+      required:
+      - currency
+      - gramsToOffset
+      - pricePerTonneMinor
+    OffsetView:
+      type: object
+      properties:
+        id:
+          type: string
+        gramsCo2Offset:
+          type: integer
+          format: int64
+        costMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        ledgerEntryId:
+          type: string
+        note:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    FootprintRequest:
+      type: object
+      properties:
+        transactionRef:
+          type: string
+          minLength: 1
+        method:
+          type: string
+          enum:
+          - UPI
+          - CARD
+          - NET_BANKING
+          - WALLET
+        amountMinor:
+          type: integer
+          format: int64
+      required:
+      - amountMinor
+      - method
+      - transactionRef
+    RecordView:
+      type: object
+      properties:
+        id:
+          type: string
+        transactionRef:
+          type: string
+        method:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        gramsCo2:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+    HoldRequest:
+      type: object
+      properties:
+        buyerRef:
+          type: string
+          minLength: 1
+        sellerRef:
+          type: string
+          minLength: 1
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        description:
+          type: string
+      required:
+      - amountMinor
+      - buyerRef
+      - currency
+      - sellerRef
+    EscrowAgreementSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        buyerRef:
+          type: string
+        sellerRef:
+          type: string
+        currency:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        releasedMinor:
+          type: integer
+          format: int64
+        refundedMinor:
+          type: integer
+          format: int64
+        remainingMinor:
+          type: integer
+          format: int64
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+    EscrowAgreementView:
+      type: object
+      properties:
+        escrow:
+          $ref: "#/components/schemas/EscrowAgreementSummary"
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/EscrowEventView"
+    EscrowEventView:
+      type: object
+      properties:
+        type:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        ledgerEntryId:
+          type: string
+        note:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    MovementRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        note:
+          type: string
+      required:
+      - amountMinor
+    CreateRemittanceRequest:
+      type: object
+      properties:
+        beneficiaryName:
+          type: string
+          minLength: 1
+        beneficiarySwift:
+          type: string
+          minLength: 1
+        beneficiaryAccount:
+          type: string
+          minLength: 1
+        beneficiaryCountry:
+          type: string
+          minLength: 1
+        currency:
+          type: string
+          minLength: 1
+        foreignAmountMinor:
+          type: integer
+          format: int64
+        purposeCode:
+          type: string
+          minLength: 1
+      required:
+      - beneficiaryAccount
+      - beneficiaryCountry
+      - beneficiaryName
+      - beneficiarySwift
+      - currency
+      - foreignAmountMinor
+      - purposeCode
+    OutboundRemittanceView:
+      type: object
+      properties:
+        id:
+          type: string
+        beneficiaryName:
+          type: string
+        beneficiarySwift:
+          type: string
+        beneficiaryCountry:
+          type: string
+        purposeCode:
+          type: string
+        currency:
+          type: string
+        foreignAmountMinor:
+          type: integer
+          format: int64
+        fxRate:
+          type: number
+        principalInrMinor:
+          type: integer
+          format: int64
+        tcsMinor:
+          type: integer
+          format: int64
+        inrDebitedMinor:
+          type: integer
+          format: int64
+        financialYear:
+          type: string
+        lrsCumulativeAfterMinor:
+          type: integer
+          format: int64
+        status:
+          type: string
+        ledgerEntryId:
+          type: string
+        remittanceReference:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    MarkRemittedRequest:
+      type: object
+      properties:
+        remittanceReference:
+          type: string
+          minLength: 1
+      required:
+      - remittanceReference
+    MarkFailedRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          minLength: 1
+      required:
+      - reason
+    QuoteRequest:
+      type: object
+      properties:
+        currency:
+          type: string
+          minLength: 1
+        foreignAmountMinor:
+          type: integer
+          format: int64
+      required:
+      - currency
+      - foreignAmountMinor
+    QuoteView:
+      type: object
+      properties:
+        currency:
+          type: string
+        foreignAmountMinor:
+          type: integer
+          format: int64
+        fxRate:
+          type: number
+        principalInrMinor:
+          type: integer
+          format: int64
+        financialYear:
+          type: string
+        lrsCumulativeBeforeMinor:
+          type: integer
+          format: int64
+        lrsThresholdMinor:
+          type: integer
+          format: int64
+        tcsMinor:
+          type: integer
+          format: int64
+        tcsBps:
+          type: integer
+          format: int32
+        inrDebitedMinor:
+          type: integer
+          format: int64
+    CreateExportInvoiceRequest:
+      type: object
+      properties:
+        invoiceNumber:
+          type: string
+          minLength: 1
+        buyerCountry:
+          type: string
+          minLength: 1
+        currency:
+          type: string
+          minLength: 1
+        foreignAmountMinor:
+          type: integer
+          format: int64
+        purposeCode:
+          type: string
+          minLength: 1
+        lut:
+          type: boolean
+      required:
+      - buyerCountry
+      - currency
+      - foreignAmountMinor
+      - invoiceNumber
+      - purposeCode
+    CrossBorderInvoiceView:
+      type: object
+      properties:
+        invoice:
+          $ref: "#/components/schemas/InvoiceSummary"
+        remittances:
+          type: array
+          items:
+            $ref: "#/components/schemas/CrossBorderRemittanceView"
+    CrossBorderRemittanceView:
+      type: object
+      properties:
+        id:
+          type: string
+        foreignAmountMinor:
+          type: integer
+          format: int64
+        foreignCurrency:
+          type: string
+        fxRate:
+          type: number
+        inrAmountMinor:
+          type: integer
+          format: int64
+        firaReference:
+          type: string
+        purposeCode:
+          type: string
+        ledgerEntryId:
+          type: string
+        remittedAt:
+          type: string
+          format: date-time
+    InvoiceSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        invoiceNumber:
+          type: string
+        buyerCountry:
+          type: string
+        currency:
+          type: string
+        foreignAmountMinor:
+          type: integer
+          format: int64
+        purposeCode:
+          type: string
+        lut:
+          type: boolean
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    RemittanceRequest:
+      type: object
+      properties:
+        foreignAmountMinor:
+          type: integer
+          format: int64
+        firaReference:
+          type: string
+          minLength: 1
+      required:
+      - firaReference
+      - foreignAmountMinor
+    CardIssueRequest:
+      type: object
+      properties:
+        holderRef:
+          type: string
+          minLength: 1
+        type:
+          type: string
+          enum:
+          - EXPENSE
+          - WALLET
+        currency:
+          type: string
+          minLength: 1
+      required:
+      - currency
+      - holderRef
+      - type
+    CardSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        holderRef:
+          type: string
+        type:
+          type: string
+        maskedPan:
+          type: string
+        currency:
+          type: string
+        balanceMinor:
+          type: integer
+          format: int64
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+    CardView:
+      type: object
+      properties:
+        card:
+          $ref: "#/components/schemas/CardSummary"
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/TransactionView"
+    TransactionView:
+      type: object
+      properties:
+        type:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        ledgerEntryId:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    SpendRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+        description:
+          type: string
+      required:
+      - amountMinor
+    CardAmountRequest:
+      type: object
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+      required:
+      - amountMinor
+    CreateAgreementRequest:
+      type: object
+      properties:
+        customerRef:
+          type: string
+          minLength: 1
+        orderRef:
+          type: string
+          minLength: 1
+        orderAmountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        installments:
+          type: integer
+          format: int32
+        interestBps:
+          type: integer
+          format: int32
+        firstDueDate:
+          type: string
+          format: date
+      required:
+      - currency
+      - customerRef
+      - firstDueDate
+      - installments
+      - interestBps
+      - orderAmountMinor
+      - orderRef
+    BnplAgreementSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        customerRef:
+          type: string
+        orderRef:
+          type: string
+        currency:
+          type: string
+        orderAmountMinor:
+          type: integer
+          format: int64
+        interestBps:
+          type: integer
+          format: int32
+        totalPayableMinor:
+          type: integer
+          format: int64
+        installmentsCount:
+          type: integer
+          format: int32
+        paidInstallments:
+          type: integer
+          format: int32
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        settledAt:
+          type: string
+          format: date-time
+    BnplAgreementView:
+      type: object
+      properties:
+        agreement:
+          $ref: "#/components/schemas/BnplAgreementSummary"
+        installments:
+          type: array
+          items:
+            $ref: "#/components/schemas/InstallmentView"
+    InstallmentView:
+      type: object
+      properties:
+        seq:
+          type: integer
+          format: int32
+        dueDate:
+          type: string
+          format: date
+        amountMinor:
+          type: integer
+          format: int64
+        status:
+          type: string
+        paidAt:
+          type: string
+          format: date-time
+    FootprintSummary:
+      type: object
+      properties:
+        recordCount:
+          type: integer
+          format: int64
+        totalGramsCo2:
+          type: integer
+          format: int64
+        totalGramsOffset:
+          type: integer
+          format: int64
+        netGramsCo2:
+          type: integer
+          format: int64
+    RemittanceDetailView:
+      type: object
+      properties:
+        remittance:
+          $ref: "#/components/schemas/OutboundRemittanceView"
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/RemittanceEventView"
+    RemittanceEventView:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        note:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      description: Programmatic API key (`qp_live_…` / `qp_test_…`) presented as the
+        `X-Api-Key` header.
+      name: X-Api-Key
+      in: header

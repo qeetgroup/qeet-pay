@@ -12,6 +12,7 @@ import io.swagger.v3.oas.models.tags.Tag;
 import java.util.ArrayList;
 import java.util.List;
 import org.springdoc.core.customizers.OpenApiCustomizer;
+import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -86,6 +87,66 @@ public class OpenApiConfig {
     @Bean
     public OpenApiCustomizer curatedTagOrderCustomizer() {
         return openApi -> openApi.setTags(new ArrayList<>(curatedTags()));
+    }
+
+    // --- Per-bounded-context API groups. springdoc serves each self-contained spec at
+    // /v3/api-docs/{group} (+ .yaml); these are exported to api/openapi/<group>.yaml (no monolith). ---
+
+    @Bean
+    public GroupedOpenApi paymentsApiGroup() {
+        return GroupedOpenApi.builder().group("payments")
+                .pathsToMatch("/v1/payments/**", "/v1/payment-links/**", "/v1/checkout/**",
+                        "/v1/mandates/**", "/v1/offline/**", "/v1/virtual-accounts/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi payoutsApiGroup() {
+        return GroupedOpenApi.builder().group("payouts")
+                .pathsToMatch("/v1/payouts/**", "/v1/payout-batches/**", "/v1/payroll/**",
+                        "/v1/treasury/**", "/v1/ledger/**", "/v1/settlements/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi billingApiGroup() {
+        return GroupedOpenApi.builder().group("billing")
+                .pathsToMatch("/v1/plans/**", "/v1/subscriptions/**", "/v1/invoices/**",
+                        "/v1/billing/**", "/v1/dunning/**", "/v1/revrec/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi taxApiGroup() {
+        return GroupedOpenApi.builder().group("tax")
+                .pathsToMatch("/v1/gst/**", "/v1/tds/**", "/v1/itc/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi commerceApiGroup() {
+        return GroupedOpenApi.builder().group("commerce")
+                .pathsToMatch("/v1/marketplace/**", "/v1/ondc/**", "/v1/crossborder/**",
+                        "/v1/esg/**", "/v1/lending/**", "/v1/bnpl/**", "/v1/cards/**",
+                        "/v1/insurance/**", "/v1/escrow/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi riskApiGroup() {
+        return GroupedOpenApi.builder().group("risk")
+                .pathsToMatch("/v1/fraud/**", "/v1/aml/**", "/v1/kyc/**", "/v1/merchants/kyb/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi platformApiGroup() {
+        return GroupedOpenApi.builder().group("platform")
+                .pathsToMatch("/v1/webhooks/**", "/v1/analytics/**", "/v1/ai/**", "/v1/agentic/**",
+                        "/v1/copilot/**", "/v1/messaging/**", "/v1/accounting/**",
+                        "/v1/merchants/**", "/v1/me")
+                .pathsToExclude("/v1/merchants/kyb/**")
+                .build();
     }
 
     /**

@@ -13,3 +13,6 @@ httpx>=0.28.1
 #   onnxruntime>=1.17    # ONNX inference when FRAUD_MODEL_PATH is set
 #   numpy>=1.26          # feature tensor for onnxruntime
 #   redis>=5.0           # shared velocity features when REDIS_URL is set
+#   geoip2>=4.8          # MaxMind IP-risk lookup when MAXMIND_DB_PATH or
+#                        # MAXMIND_ACCOUNT_ID/MAXMIND_LICENSE_KEY is set
+#                        # (else a deterministic offline heuristic is used)

@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.crossborder;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -80,6 +81,7 @@ public class CrossBorderController {
     public record RemittanceRequest(
             @NotNull @Positive Long foreignAmountMinor, @NotBlank String firaReference) {}
 
+    @Schema(name = "CrossBorderRemittanceView")
     public record RemittanceView(
             String id, long foreignAmountMinor, String foreignCurrency, BigDecimal fxRate,
             long inrAmountMinor, String firaReference, String purposeCode, String ledgerEntryId,
@@ -102,6 +104,7 @@ public class CrossBorderController {
         }
     }
 
+    @Schema(name = "CrossBorderInvoiceView")
     public record InvoiceView(InvoiceSummary invoice, List<RemittanceView> remittances) {
         static InvoiceView of(ExportInvoice i, List<RemittanceView> remittances) {
             return new InvoiceView(InvoiceSummary.of(i), remittances);

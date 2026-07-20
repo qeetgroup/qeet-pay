@@ -12,9 +12,11 @@ yet — mapped against the PRD's 20 modules, AI spec, compliance obligations, an
 > boundary verification**, and **boots end-to-end** (all 50 migrations apply in order on a fresh DB, all
 > beans wire, all JPA mappings validate). Live third-party adapters are **gated off by default** (no creds
 > in-repo); all "AI" runs through the AI-gateway on **deterministic offline stand-ins** (no trained models
-> in-repo). Two known issues: **qeetrix 1.0.1** consumer-bump is blocked (broken registry publish — apps
-> stay on `@qeetrix/ui ^0.4.0`); the **webhook-endpoint seed** returns a pre-existing 400 (JSON binding
-> bug in the existing `webhooks` module).
+> in-repo). **qeetrix:** all three apps (console/checkout/website) consume `@qeetrix/ui@^1.0.2` from the
+> registry and are managed with **bun** (pnpm-lock removed). The API contract is published as **seven bounded-context OpenAPI files** in
+> [api/openapi/](api/openapi/) (no monolithic `v1.yaml`), and the three client SDKs are live at
+> `github.com/qeetgroup/qeet-pay-{node,go,react}`. The earlier webhooks-400 seed bug is **fixed**
+> (events normalized to a JSON array in `WebhookDeliveryService`).
 
 ---
 
@@ -22,15 +24,18 @@ yet — mapped against the PRD's 20 modules, AI spec, compliance obligations, an
 
 | Dimension | Was (pre-build) | Now |
 | --- | --- | --- |
-| Backend modules (Spring Modulith) | 30 | **38** |
-| Backend `.java` (main) | ~380 | **612** |
-| Test files | 62 | **94** |
-| Flyway migrations | V1–V36 | **V1–V56 (50 files)** |
-| REST endpoints | 169 | **262** |
+| Backend modules (Spring Modulith) | 30 | **39** |
+| Backend `.java` (main) | ~380 | **641** |
+| Test files | 62 | **98** |
+| Flyway migrations | V1–V36 | **V1–V58 (52 files)** |
+| REST endpoints | 169 | **275** |
 | Console feature routes | 38 | **47** |
-| Live external adapters (gated) | 1 (Razorpay, flag) | **8** |
+| Live external adapters (gated) | 1 (Razorpay, flag) | **10** |
+| OpenAPI spec | 1 file (143 paths) | **7 bounded-context files (226 paths)** |
+| `qp` CLI command groups | 13 | **34** |
+| Client SDKs | 3 (local dirs) | **3 published — github.com/qeetgroup/qeet-pay-{node,go,react}** |
 
-Verification this build: `./gradlew compileJava compileTestJava` ✅ · `ModularityTests` ✅ · fresh-DB boot to `readyz` 200 with all V1–V56 applied ✅. (Full Testcontainers suite still runs on CI/Linux only.)
+Verification: `./gradlew compileJava compileTestJava` ✅ · `ModularityTests` ✅ · fresh-DB boot to `readyz` 200 with all V1–V58 applied ✅ · SDK/CLI builds green · fraud-svc `pytest` 61/61. (Full Testcontainers suite runs on CI/Linux only.)
 
 ---
 
@@ -69,7 +74,13 @@ paise money, append-only ledger, transactional outbox, sandbox-adapter pattern, 
 
 ### Frontend
 - **Premium console + checkout redesign** — design system (KPI tiles, section cards, chart-kit, elevated tables), real dashboard, restyled ~35 routes, Stripe-tier checkout states.
-- **New-module console screens** — 15 routes created/restyled/extended (Compliance dashboard, Copilot chat, Fraud XAI, KYC/V-CIP/UBO tabs, cross-border in/out, TDS returns, GST-AI, agentic, accounting, offline, ondc, aml, ai audit, payroll) + 12 nav entries. `pnpm typecheck` + `build` pass.
+- **New-module console screens** — 15 routes created/restyled/extended (Compliance dashboard, Copilot chat, Fraud XAI, KYC/V-CIP/UBO tabs, cross-border in/out, TDS returns, GST-AI, agentic, accounting, offline, ondc, aml, ai audit, payroll) + 12 nav entries. `bun run typecheck` + `build` pass.
+
+### Follow-up additions (later, 2026-07-20)
+- **Webhooks bug fixed** — `WebhookDeliveryService.normalizeEvents` coerces `events` (comma-separated / bare / JSON) into a valid JSON array; endpoint create returns **201** (verified live).
+- **More features** — WhatsApp **inbound bot + WhatsApp Pay** (M09.2/9.3, `messaging/` V57), accounting **SAP** connector, **card-issuing** live rail (M2P/Decentro, gated), fraud-svc **IP-risk** (MaxMind + offline heuristic), and a new **`treasury/`** module — programmable auto-sweeps + idle-cash recommendations (Novel N3, V58).
+- **OpenAPI** — split into **7 self-contained bounded-context specs** in [api/openapi/](api/openapi/) via `GroupedOpenApi` beans; **no monolithic `v1.yaml`** (see [api/openapi/README.md](api/openapi/README.md)).
+- **SDKs + CLI** — node/go/react SDKs + the `qp` CLI extended to every new module; **SDKs published** to `github.com/qeetgroup/qeet-pay-{node,go,react}` (public, MIT, publish-on-tag CI). CLI now has 34 command groups.
 
 ---
 
@@ -85,7 +96,7 @@ paise money, append-only ledger, transactional outbox, sandbox-adapter pattern, 
 | 06 | GST Filing & Tax | 🟢 Built (+ live GSTN gated) | GSTR prep/ITC/TDS real; **LiveGstnFilingAdapter** gated; **24Q/26Q/27EQ returns + Reg-Change Radar added** |
 | 07 | Payment Orchestration | 🟢 Built | scorecard routing + **AI ranking + compliance-aware routing** (advisory) |
 | 08 | Fraud & Risk | 🟢 Built | **ML path wired + SHAP XAI + persisted decisions**; gateway-audited (baseline model, no trained model) |
-| 09 | WhatsApp-Native | 🟡 Partial | dispatch via outbox→Notify (NATS relay hardened but off); no inbound bot |
+| 09 | WhatsApp-Native | 🟢 Built | dispatch via outbox→Notify + **inbound bot + WhatsApp Pay (9.2/9.3) added**; needs live Meta webhook wiring; NATS relay off by default |
 | 10 | Embedded Finance | ✅ Built (sim rails) | lending/BNPL/cards/insurance/escrow (internal sims) |
 | 11 | Revenue Recognition | 🟢 Built | IndAS-115 engine + **accounting integrations (Tally/Zoho/webhook) added** |
 | 12 | Analytics & Cash-Flow | 🟢 Built | metrics + forecast + **unified compliance dashboard (12.6)** + **Treasury copilot (12.5)** |
@@ -96,7 +107,7 @@ paise money, append-only ledger, transactional outbox, sandbox-adapter pattern, 
 | 17 | Developer Experience & SDKs | 🟢 Built | API/SDKs/CLI/sandbox + **MCP manifest + agentic mandates (17.5) added** |
 | 18 | Qeet Ecosystem Integrations | 🟡 Partial | Qeet ID OIDC real; **payroll integration added**; NATS relay hardened (off by default) |
 | 19 | KYC/KYB & Onboarding | 🟢 Built (+ live gated) | **V-CIP + customer-KYC + UBO added**; LiveKybAdapter gated |
-| 20 | Novel / Extra (N1–N10) | 🟡 Partial | N1 agentic mandates, N7 recon copilot, N8-style fraud audit added; others not started |
+| 20 | Novel / Extra (N1–N10) | 🟡 Partial | N1 agentic mandates, **N3 treasury auto-sweeps**, N7 recon copilot, N8-style fraud audit added; others not started |
 
 Legend: ✅ complete · 🟢 built this build (logic real; external rail gated / AI on offline stand-in) · 🟡 partial · ⬜ not started.
 
@@ -118,16 +129,18 @@ this substrate. The Python `fraud-svc` additionally has the ONNX inference + Red
 
 ## What's genuinely still remaining
 
-- **Live credentials + real endpoints** — the 8 gated adapters (IRP/GSTN/KYB/RazorpayX/FX/Razorpay-acquire)
-  need real keys + integration testing; they are code-complete but unproven against live services.
+- **Live credentials + real endpoints** — the ~10 gated adapters (IRP / GSTN / KYB / RazorpayX / FX /
+  Razorpay-acquire / card-issuing / SAP / Zoho …) need real keys + integration testing; they are
+  code-complete but unproven against live services.
 - **Trained models** — replace the offline stand-ins / baseline fraud model with real trained models
   (fraud GBM+SHAP, dunning, orchestration, GST classification) behind the existing gateway seam.
-- **WhatsApp inbound bot / WhatsApp Pay** (M09.2/9.3); enabling the NATS relay in prod for end-to-end Notify/Logs.
-- **Accounting: SAP**; **e-invoice/GSTR live exercised end-to-end**; **AML STR filed to real FIU**.
+- **Wire the live externals** — enable the NATS relay in prod (end-to-end Notify/Logs); exercise
+  e-invoice/GSTR filing + AML STR against real endpoints; card-issuing at a real network (M2P/Decentro);
+  the live **Meta WhatsApp webhook** (signature + public routing) for the built inbound bot.
 - **The external / regulatory / ops GA gate** — RBI PA licence, nodal, KMS/BYOK, pentest/PCI-DSS, SOC 2, DR,
   load testing — tracked in [docs/PRODUCTION-READINESS.md](docs/PRODUCTION-READINESS.md).
-- **Housekeeping**: fix the pre-existing `webhooks` endpoint JSON-binding 400; regenerate the committed
-  `api/openapi/v1.yaml` + client SDKs + `qp` CLI for the 93 new endpoints; resolve the qeetrix 1.0.1 publish.
+- **Minor spec hygiene** — disambiguate the springdoc-colliding DTO names
+  (`PayRequest` / `IssueRequest` / `MandateView` / `DecisionView`) with `@Schema(name=…)` for a cleaner spec.
 
 ---
 
@@ -137,5 +150,5 @@ this substrate. The Python `fraud-svc` additionally has the ONNX inference + Red
 docker compose -f docker-compose.yml up -d postgres      # Postgres :5201
 SPRING_PROFILES_ACTIVE=dev java -jar build/libs/qeet-pay-0.0.1-SNAPSHOT.jar   # API :4201 (or: make dev)
 cli/qp sandbox seed                                       # demo merchant → qp_test_… key
-pnpm -C apps/console dev                                  # console :3201
+cd apps/console && bun run dev                                  # console :3201
 ```

@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.agentic;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -93,6 +94,7 @@ public class AgentMandateController {
 
     // ── Records ──────────────────────────────────────────────────────────────
 
+    @Schema(name = "AgentMandateIssueRequest")
     public record IssueRequest(
             @NotBlank String agentId,
             String label,
@@ -112,6 +114,7 @@ public class AgentMandateController {
 
     public record RevokeRequest(String reason) {}
 
+    @Schema(name = "AgentMandateView")
     public record MandateView(
             String id,
             String agentId,

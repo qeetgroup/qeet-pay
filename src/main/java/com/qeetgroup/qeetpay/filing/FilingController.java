@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.filing;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -57,8 +58,10 @@ public class FilingController {
 
     // ── Records ──────────────────────────────────────────────────────────────
 
+    @Schema(name = "FilingPrepareRequest")
     public record PrepareRequest(GstReturnType type, @NotBlank String period) {}
 
+    @Schema(name = "FilingReturnLineView")
     public record ReturnLineView(
             String invoiceNumber, String buyerGstin, String placeOfSupply, String supplyType,
             long taxableMinor, long cgstMinor, long sgstMinor, long igstMinor) {
@@ -69,6 +72,7 @@ public class FilingController {
         }
     }
 
+    @Schema(name = "FilingReturnSummary")
     public record ReturnSummary(
             String id, String type, String period, String status, int invoiceCount,
             long totalTaxableMinor, long totalCgstMinor, long totalSgstMinor, long totalIgstMinor,
@@ -81,6 +85,7 @@ public class FilingController {
         }
     }
 
+    @Schema(name = "FilingReturnView")
     public record ReturnView(ReturnSummary ret, List<ReturnLineView> lines) {
         static ReturnView of(FilingService.ReturnWithLines r) {
             return new ReturnView(

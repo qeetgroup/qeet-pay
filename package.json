@@ -1,0 +1,17 @@
+{
+  "name": "@qeet-pay/root",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Qeet Pay — repo tooling (project-tree generation). Backend is Gradle/Java; the three web apps live under apps/ and are managed with bun individually.",
+  "packageManager": "bun@1.3.14",
+  "scripts": {
+    "generate:tree": "struct -i node_modules -i .next -i .output -i .tanstack -i .nitro -i dist -i build -i .gradle -i bin -i target -i bun.lock -i .venv -i .pytest_cache -i __pycache__ -i .ruff_cache -i .turbo -i .git -d -o project.tree",
+    "generate:tree:console": "struct -i node_modules -i .output -i .tanstack -i .nitro -i dist -o apps/console/project.tree apps/console",
+    "generate:tree:checkout": "struct -i node_modules -i .next -o apps/checkout/project.tree apps/checkout",
+    "generate:tree:website": "struct -i node_modules -i .next -o apps/website/project.tree apps/website",
+    "generate:tree:all": "bun run generate:tree && bun run generate:tree:console && bun run generate:tree:checkout && bun run generate:tree:website"
+  },
+  "devDependencies": {
+    "@structure-codes/cli": "^0.0.6"
+  }
+}

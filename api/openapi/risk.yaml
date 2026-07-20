@@ -1,0 +1,1233 @@
+openapi: 3.1.0
+info:
+  title: Qeet Pay API
+  description: "Qeet Pay — India-first payments, billing and GST infrastructure (UPI\
+    \ / Cards / NACH). Programmatic `/v1` calls authenticate with a `qp_live_` / `qp_test_`\
+    \ API key via the `X-Api-Key` header; money is always in integer minor units (paise)."
+  contact:
+    name: Qeet Group
+    url: https://qeet.in
+  license:
+    name: Proprietary
+    url: https://qeet.in
+  version: v1
+servers:
+- url: http://localhost:4201
+  description: Local development
+- url: https://api.pay.qeet.in
+  description: Production
+security:
+- ApiKeyAuth: []
+tags:
+- name: Billing
+  description: "Plans, subscriptions, invoices and usage metering."
+- name: AML
+  description: "Sanctions/PEP screening, transaction monitoring, mule-account detection,\
+    \ and STR generation/filing with FIU-IND."
+- name: Payouts
+  description: Single and bulk payouts under maker-checker approval.
+- name: Lending
+  description: Working-capital advances repaid from settlements.
+- name: Mandates
+  description: Recurring mandates and idempotent mandate debits.
+- name: Customer KYC
+  description: End-customer KYC — Aadhaar-OTP e-KYC (simulated) + PAN verification
+    + consent capture.
+- name: Revenue Recognition
+  description: IndAS 115 deferred-revenue schedules.
+- name: KYB
+  description: Merchant Know-Your-Business verification.
+- name: GST Invoicing
+  description: GST invoices and credit/debit notes.
+- name: Cards
+  description: Virtual expense/wallet cards.
+- name: E-Invoicing (IRN)
+  description: IRP registration for IRN + signed QR.
+- name: GST Returns
+  description: GSTR-1/GSTR-3B preparation and GSTN filing.
+- name: Messaging
+  description: WhatsApp/SMS/email templates and dispatch.
+- name: Payment Links
+  description: Shareable payment links — fixed or payer-entered amount.
+- name: KYB V-CIP
+  description: Video-based Customer Identification Process — schedule and run video-KYC
+    sessions for a merchant's signatory (RBI Master Directions).
+- name: Fraud
+  description: "Fraud-scoring decision audit — score, verdict, and the Explainable-AI\
+    \ top reasons."
+- name: Insurance
+  description: Embedded protection policies and claims.
+- name: Cross-Border
+  description: Export invoices and inward FX remittances (FIRA).
+- name: Merchants
+  description: Merchant onboarding and current-merchant profile.
+- name: Payments
+  description: "Accept payments (create, capture) and inbound provider webhooks."
+- name: Orchestration
+  description: Smart provider routing — scorecards and cost basis.
+- name: Platform
+  description: Request-identity introspection and health probes.
+- name: Reconciliation
+  description: Provider settlements and auto-reconciliation.
+- name: TDS / TCS
+  description: "Tax-at-source deductions, certificates and summaries."
+- name: Escrow
+  description: "Conditional hold, release-to-seller and refund."
+- name: KYB
+  description: Merchant Know-Your-Business — submit PAN / GSTIN / bank details and
+    query overall verification status.
+- name: Input Tax Credit
+  description: Purchase invoices reconciled against GSTR-2B.
+- name: KYB UBO
+  description: Ultimate Beneficial Owner registry — natural persons holding > 10%
+    equity (RBI Master Directions).
+- name: Analytics
+  description: "TPV, MRR/ARR, success rate and cash-flow forecasting."
+- name: Checkout
+  description: "Public hosted-checkout — pay a link by its code, no API key."
+- name: Marketplace
+  description: Seller registration and split settlements (TCS/TDS).
+- name: Dunning
+  description: Failed-payment retry rules and attempt history.
+- name: ESG / Carbon
+  description: Per-transaction carbon footprint and offsets.
+- name: Ledger
+  description: Double-entry ledger accounts and balanced journal entries.
+- name: Virtual Accounts
+  description: Per-customer virtual accounts with auto-reconciled credits.
+- name: Webhooks
+  description: Webhook endpoint registration and delivery history.
+- name: BNPL
+  description: Buy-Now-Pay-Later installment agreements.
+paths:
+  /v1/merchants/kyb/vcip:
+    get:
+      tags:
+      - KYB V-CIP
+      operationId: list
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SessionView"
+    post:
+      tags:
+      - KYB V-CIP
+      operationId: schedule
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SessionView"
+  /v1/merchants/kyb/vcip/{sessionId}/start:
+    post:
+      tags:
+      - KYB V-CIP
+      operationId: start
+      parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SessionView"
+  /v1/merchants/kyb/vcip/{sessionId}/fail:
+    post:
+      tags:
+      - KYB V-CIP
+      operationId: fail
+      parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FailRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SessionView"
+  /v1/merchants/kyb/vcip/{sessionId}/complete:
+    post:
+      tags:
+      - KYB V-CIP
+      operationId: complete
+      parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SessionView"
+  /v1/merchants/kyb/ubo:
+    get:
+      tags:
+      - KYB UBO
+      operationId: list_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OwnerView"
+    post:
+      tags:
+      - KYB UBO
+      operationId: add
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OwnerView"
+  /v1/merchants/kyb/pan:
+    post:
+      tags:
+      - KYB
+      operationId: submitPan
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KybPanRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/KybView"
+  /v1/merchants/kyb/gstin:
+    post:
+      tags:
+      - KYB
+      operationId: submitGstin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GstinRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/KybView"
+  /v1/merchants/kyb/bank:
+    post:
+      tags:
+      - KYB
+      operationId: submitBank
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BankRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/KybView"
+  /v1/kyc/customers:
+    get:
+      tags:
+      - Customer KYC
+      operationId: list_2
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/KycView"
+    post:
+      tags:
+      - Customer KYC
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/KycView"
+  /v1/kyc/customers/{id}/pan:
+    post:
+      tags:
+      - Customer KYC
+      operationId: submitPan_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KycPanRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/KycView"
+  /v1/kyc/customers/{id}/consent:
+    post:
+      tags:
+      - Customer KYC
+      operationId: consent
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConsentRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/KycView"
+  /v1/kyc/customers/{id}/aadhaar/verify:
+    post:
+      tags:
+      - Customer KYC
+      operationId: verifyAadhaar
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AadhaarVerifyRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/KycView"
+  /v1/kyc/customers/{id}/aadhaar/initiate:
+    post:
+      tags:
+      - Customer KYC
+      operationId: initiateAadhaar
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AadhaarInitiateRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/KycView"
+  /v1/aml/str-reports:
+    get:
+      tags:
+      - AML
+      operationId: strReports
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StrView"
+    post:
+      tags:
+      - AML
+      operationId: createStr
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStrRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/StrView"
+  /v1/aml/screen:
+    post:
+      tags:
+      - AML
+      operationId: screen
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScreenRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ScreeningView"
+  /v1/aml/mule-scan:
+    post:
+      tags:
+      - AML
+      operationId: muleScan
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MuleScanRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MuleView"
+  /v1/aml/monitor:
+    post:
+      tags:
+      - AML
+      operationId: monitor
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MonitorRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MonitorResult"
+  /v1/aml/cases:
+    get:
+      tags:
+      - AML
+      operationId: cases
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CaseView"
+    post:
+      tags:
+      - AML
+      operationId: createCase
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCaseRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CaseView"
+  /v1/aml/cases/{id}/close:
+    post:
+      tags:
+      - AML
+      operationId: closeCase
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CloseCaseRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CaseView"
+  /v1/merchants/kyb/vcip/{sessionId}:
+    get:
+      tags:
+      - KYB V-CIP
+      operationId: get
+      parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SessionView"
+  /v1/merchants/kyb/ubo/{id}:
+    get:
+      tags:
+      - KYB UBO
+      operationId: get_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OwnerView"
+    delete:
+      tags:
+      - KYB UBO
+      operationId: remove
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+  /v1/merchants/kyb/status:
+    get:
+      tags:
+      - KYB
+      operationId: status
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/KybView"
+  /v1/kyc/customers/{id}:
+    get:
+      tags:
+      - Customer KYC
+      operationId: get_2
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/KycView"
+  /v1/fraud/decisions:
+    get:
+      tags:
+      - Fraud
+      operationId: list_3
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FraudDecisionSummary"
+  /v1/fraud/decisions/{id}:
+    get:
+      tags:
+      - Fraud
+      operationId: get_3
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/FraudDecisionView"
+  /v1/aml/alerts:
+    get:
+      tags:
+      - AML
+      operationId: alerts
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - OPEN
+          - DISMISSED
+          - ESCALATED
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AlertView"
+components:
+  schemas:
+    ScheduleRequest:
+      type: object
+      properties:
+        subjectName:
+          type: string
+          minLength: 1
+        subjectRef:
+          type: string
+        agentId:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+      required:
+      - subjectName
+    SessionView:
+      type: object
+      properties:
+        id:
+          type: string
+        merchantId:
+          type: string
+        subjectName:
+          type: string
+        subjectRef:
+          type: string
+        status:
+          type: string
+        agentId:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        livenessScore:
+          type: integer
+          format: int32
+        geoTag:
+          type: string
+        retentionExpiresAt:
+          type: string
+          format: date-time
+        failureReason:
+          type: string
+    FailRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+    CompleteRequest:
+      type: object
+      properties:
+        biometricRef:
+          type: string
+          minLength: 1
+        livenessScore:
+          type: integer
+          format: int32
+          maximum: 100
+          minimum: 0
+        geoTag:
+          type: string
+      required:
+      - biometricRef
+    AddRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        pan:
+          type: string
+        din:
+          type: string
+        nationality:
+          type: string
+        ownershipBps:
+          type: integer
+          format: int32
+          maximum: 10000
+          minimum: 1001
+        controlPerson:
+          type: boolean
+      required:
+      - name
+      - ownershipBps
+    OwnerView:
+      type: object
+      properties:
+        id:
+          type: string
+        merchantId:
+          type: string
+        name:
+          type: string
+        pan:
+          type: string
+        din:
+          type: string
+        nationality:
+          type: string
+        ownershipBps:
+          type: integer
+          format: int32
+        controlPerson:
+          type: boolean
+        panStatus:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    KybPanRequest:
+      type: object
+      properties:
+        pan:
+          type: string
+          minLength: 1
+      required:
+      - pan
+    KybView:
+      type: object
+      properties:
+        merchantId:
+          type: string
+        overallStatus:
+          type: string
+        panStatus:
+          type: string
+        gstinStatus:
+          type: string
+        bankStatus:
+          type: string
+        verifiedAt:
+          type: string
+          format: date-time
+    GstinRequest:
+      type: object
+      properties:
+        gstin:
+          type: string
+          minLength: 1
+      required:
+      - gstin
+    BankRequest:
+      type: object
+      properties:
+        accountNumber:
+          type: string
+          minLength: 1
+        ifsc:
+          type: string
+          minLength: 1
+      required:
+      - accountNumber
+      - ifsc
+    CreateRequest:
+      type: object
+      properties:
+        customerRef:
+          type: string
+          minLength: 1
+        fullName:
+          type: string
+          minLength: 1
+        consentGiven:
+          type: boolean
+        consentArtifact:
+          type: string
+      required:
+      - customerRef
+      - fullName
+    KycView:
+      type: object
+      properties:
+        id:
+          type: string
+        merchantId:
+          type: string
+        customerRef:
+          type: string
+        fullName:
+          type: string
+        aadhaarLast4:
+          type: string
+        aadhaarTxnId:
+          type: string
+        aadhaarStatus:
+          type: string
+        pan:
+          type: string
+        panStatus:
+          type: string
+        consentGiven:
+          type: boolean
+        consentAt:
+          type: string
+          format: date-time
+        overallStatus:
+          type: string
+        verifiedAt:
+          type: string
+          format: date-time
+    KycPanRequest:
+      type: object
+      properties:
+        pan:
+          type: string
+          minLength: 1
+      required:
+      - pan
+    ConsentRequest:
+      type: object
+      properties:
+        consentArtifact:
+          type: string
+    AadhaarVerifyRequest:
+      type: object
+      properties:
+        txnId:
+          type: string
+          minLength: 1
+        otp:
+          type: string
+          minLength: 1
+      required:
+      - otp
+      - txnId
+    AadhaarInitiateRequest:
+      type: object
+      properties:
+        aadhaar:
+          type: string
+          minLength: 1
+      required:
+      - aadhaar
+    CreateStrRequest:
+      type: object
+      properties:
+        caseId:
+          type: string
+          format: uuid
+        subject:
+          type: string
+          minLength: 1
+        grounds:
+          type: string
+          minLength: 1
+        fileImmediately:
+          type: boolean
+      required:
+      - grounds
+      - subject
+    StrView:
+      type: object
+      properties:
+        id:
+          type: string
+        caseId:
+          type: string
+        subject:
+          type: string
+        grounds:
+          type: string
+        status:
+          type: string
+        fiuReferenceId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        filedAt:
+          type: string
+          format: date-time
+    ScreenRequest:
+      type: object
+      properties:
+        partyType:
+          type: string
+          enum:
+          - INDIVIDUAL
+          - BUSINESS
+          - BENEFICIARY
+        partyName:
+          type: string
+          minLength: 1
+        identifier:
+          type: string
+      required:
+      - partyName
+      - partyType
+    ScreeningView:
+      type: object
+      properties:
+        id:
+          type: string
+        partyType:
+          type: string
+        partyName:
+          type: string
+        identifier:
+          type: string
+        result:
+          type: string
+        matchCount:
+          type: integer
+          format: int32
+        riskScore:
+          type: integer
+          format: int32
+        screenedAt:
+          type: string
+          format: date-time
+    MuleScanRequest:
+      type: object
+      properties:
+        beneficiaryRef:
+          type: string
+          minLength: 1
+        inboundMinor:
+          type: integer
+          format: int64
+        outboundMinor:
+          type: integer
+          format: int64
+        inboundCount:
+          type: integer
+          format: int32
+        outboundCount:
+          type: integer
+          format: int32
+        medianHoldSeconds:
+          type: integer
+          format: int64
+        distinctCounterparties:
+          type: integer
+          format: int32
+      required:
+      - beneficiaryRef
+    MuleView:
+      type: object
+      properties:
+        beneficiaryRef:
+          type: string
+        riskScore:
+          type: integer
+          format: int32
+        severity:
+          type: string
+        flagged:
+          type: boolean
+        reasons:
+          type: array
+          items:
+            type: string
+    MonitorRequest:
+      type: object
+      properties:
+        transactionRef:
+          type: string
+          minLength: 1
+        amountMinor:
+          type: integer
+          format: int64
+        currency:
+          type: string
+          minLength: 1
+        mcc:
+          type: integer
+          format: int32
+        countryCode:
+          type: string
+        txnCount24h:
+          type: integer
+          format: int32
+        amount24hMinor:
+          type: integer
+          format: int64
+        beneficiaryRef:
+          type: string
+      required:
+      - amountMinor
+      - currency
+      - transactionRef
+    AlertView:
+      type: object
+      properties:
+        id:
+          type: string
+        subjectRef:
+          type: string
+        transactionRef:
+          type: string
+        ruleCode:
+          type: string
+        category:
+          type: string
+        riskScore:
+          type: integer
+          format: int32
+        severity:
+          type: string
+        status:
+          type: string
+        caseId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    MonitorResult:
+      type: object
+      properties:
+        alertCount:
+          type: integer
+          format: int32
+        alerts:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlertView"
+    CreateCaseRequest:
+      type: object
+      properties:
+        subject:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        alertIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+      - subject
+    CaseView:
+      type: object
+      properties:
+        id:
+          type: string
+        subject:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        disposition:
+          type: string
+        riskScore:
+          type: integer
+          format: int32
+        alertCount:
+          type: integer
+          format: int32
+        openedAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+    CloseCaseRequest:
+      type: object
+      properties:
+        disposition:
+          type: string
+          enum:
+          - CLEARED
+          - FALSE_POSITIVE
+          - STR_FILED
+      required:
+      - disposition
+    FraudDecisionSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        paymentId:
+          type: string
+        score:
+          type: integer
+          format: int32
+        decision:
+          type: string
+        model:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    FraudDecisionView:
+      type: object
+      properties:
+        id:
+          type: string
+        paymentId:
+          type: string
+        score:
+          type: integer
+          format: int32
+        decision:
+          type: string
+        model:
+          type: string
+        topReasons:
+          type: array
+          items:
+            $ref: "#/components/schemas/FraudReason"
+        aiDecisionId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    FraudReason:
+      type: object
+      properties:
+        feature:
+          type: string
+        contribution:
+          type: number
+          format: double
+        value:
+          type: number
+          format: double
+        reason:
+          type: string
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      description: Programmatic API key (`qp_live_…` / `qp_test_…`) presented as the
+        `X-Api-Key` header.
+      name: X-Api-Key
+      in: header

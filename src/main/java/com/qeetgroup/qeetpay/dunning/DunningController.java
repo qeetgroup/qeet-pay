@@ -1,6 +1,7 @@
 package com.qeetgroup.qeetpay.dunning;
 
 import com.qeetgroup.qeetpay.platform.tenancy.MerchantContext;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -88,6 +89,7 @@ public class DunningController {
 
     // ── Request / view records ────────────────────────────────────────────────
 
+    @Schema(name = "DunningClassifyRequest")
     public record ClassifyRequest(@NotBlank String failureCode) {}
 
     /** Failure code + optional engagement signals for the AI retry recommendation. */
@@ -133,6 +135,7 @@ public class DunningController {
         }
     }
 
+    @Schema(name = "DunningCreateRuleRequest")
     public record CreateRuleRequest(
             @NotBlank String name,
             String failureCodePattern,
@@ -140,6 +143,7 @@ public class DunningController {
             @Min(1) int maxAttempts,
             String notifyChannels) {}
 
+    @Schema(name = "DunningRuleView")
     public record RuleView(String id, String name, String failureCodePattern,
             int retryIntervalHours, int maxAttempts, String notifyChannels, boolean active) {
         static RuleView of(DunningRule r) {
